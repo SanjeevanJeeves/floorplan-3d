@@ -60,6 +60,11 @@ main{position:relative;overflow:hidden;background:var(--paper)}
 #plan.tool-demolish .wall{pointer-events:all;cursor:pointer}
 #plan.tool-demolish .wall:hover{fill:#d9894f}
 #plan.tool-select .room:hover{opacity:.82}
+#plan.tool-select .wall{pointer-events:all;cursor:pointer}
+#plan.tool-select .wall:hover{opacity:.7}
+.wside{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px}
+.wside h4{margin:0 0 8px;font-size:12.5px;display:flex;justify-content:space-between;gap:8px}
+.wside h4 small{color:var(--muted);font-weight:400}
 #plan .furn{cursor:move}
 @media (hover:hover){#plan .furn:hover{filter:drop-shadow(0 0 2px rgba(181,101,58,.7))}}
 [data-handle]{cursor:pointer}
@@ -454,7 +459,7 @@ function defaultFurniture(){ return [
 
 // Finishes (Unit C): colour + texture for walls, ceiling, doors, frames — saved in the JSON as "finishes"
 const FIN_KEYS = [['wall','墙面','Walls'], ['ceil','天花','Ceiling'], ['door','室内门','Doors'], ['entry','入户门','Entrance door'], ['dframe','门套','Door frames'], ['wframe','窗框','Window frames']];
-const FIN_DEFAULT = {wall:{c:'#f4f1eb', t:'paint'}, ceil:{c:'#fbfaf7', t:'paint'}, door:{c:'#efe6d8', t:'paint'}, entry:{c:'#6b4f3a', t:'oak'},
+const FIN_DEFAULT = {wall:{c:'#f9f6f0', t:'paint'}, ceil:{c:'#fcfbf8', t:'paint'}, door:{c:'#efe6d8', t:'paint'}, entry:{c:'#6b4f3a', t:'oak'},
   dframe:{c:'#efe6d8', t:'paint'}, wframe:{c:'#5d6166', t:'metal'}};
 const FIN_TEX = {   // texture id: [zh, en, metres per tile x, y, roughness, metalness, allowed for]
   paint:['乳胶漆','Matt paint',1,1,.92,0,'wall ceil door entry dframe wframe'], limewash:['肌理漆','Limewash',2,2,.95,0,'wall ceil'],
@@ -465,15 +470,26 @@ const FIN_TEX = {   // texture id: [zh, en, metres per tile x, y, roughness, met
   lacquer:['高光漆','Gloss lacquer',1,1,.18,0,'wall door entry dframe'], metal:['铝合金','Powder-coated aluminium',1,1,.45,.45,'wframe dframe'],
   brushed:['拉丝金属','Brushed metal',.5,.5,.3,.8,'wframe dframe door entry'],
 };
-const FIN_SWATCH = {wall:['#f4f1eb','#ece4d6','#e2d6c3','#d9d3c9','#c9cfc8','#b8c2c9','#8a8a84','#3d3b38'],
-  ceil:['#fbfaf7','#f4f1eb','#ece4d6','#d9d3c9'], door:['#efe6d8','#f7f5f0','#d8cfc2','#9b8d7c','#6b4f3a','#3a3532','#1f1e1d'],
-  entry:['#6b4f3a','#3a2a20','#9b7250','#2b2b2b','#4a5a52','#7d2f26'], dframe:['#efe6d8','#f7f5f0','#6b4f3a','#3a3532','#1f1e1d','#b08d57'],
+const WALL_SWATCH = ['#ffffff','#fcfbf8','#f9f6f0','#f6f1e8','#f3ede2','#f7f1e3','#f4efe9','#f1f3f1','#eef2f3','#f3ebe6','#eef0e4','#e9eef2',
+  '#ece4d6','#e2d6c3','#d9d3c9','#c9cfc8','#b8c2c9','#a9b4a3','#8a8a84','#3d3b38'];
+const FIN_SWATCH = {wall:WALL_SWATCH,
+  ceil:['#ffffff','#fcfbf8','#f9f6f0','#f6f1e8','#f4f1eb','#ece4d6','#d9d3c9'], door:['#ffffff','#f7f5f0','#efe6d8','#d8cfc2','#9b8d7c','#6b4f3a','#3a3532','#1f1e1d'],
+  entry:['#6b4f3a','#3a2a20','#9b7250','#2b2b2b','#4a5a52','#7d2f26'], dframe:['#ffffff','#f7f5f0','#efe6d8','#6b4f3a','#3a3532','#1f1e1d','#b08d57'],
   wframe:['#5d6166','#2a2a2c','#f2f2f0','#6f5a45','#8a8f94','#b08d57']};
+// each wall rect has two long faces: side a = north / west, side b = south / east
+const inPoly = (x, y, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++){ const [xi, yi] = poly[i], [xj, yj] = poly[j];
+  if ((yi > y) !== (yj > y) && x < (xj - xi)*(y - yi)/(yj - yi) + xi) c = !c; } return c; };
+function wallSides(i){
+  const [x0, y0, x1, y1] = WALLS[i], horiz = (x1 - x0) >= (y1 - y0), mx = (x0 + x1)/2, my = (y0 + y1)/2;
+  const probe = (x, y) => { const r = ROOMS.find(r => inPoly(x, y, r.poly)); return r ? r.id : null; };
+  const a = horiz ? probe(mx, y0 - 120) : probe(x0 - 120, my), b = horiz ? probe(mx, y1 + 120) : probe(x1 + 120, my);
+  return {horiz, a, b, an:horiz ? tr('北侧','North side') : tr('西侧','West side'), bn:horiz ? tr('南侧','South side') : tr('东侧','East side')};
+}
 function fixFinishes(f){ const o = JSON.parse(JSON.stringify(FIN_DEFAULT)); for (const k in o) if (f?.[k]?.c) o[k] = {c:f[k].c, t:FIN_TEX[f[k].t] ? f[k].t : o[k].t}; return o; }
 
 function defaultState(){
   const rooms = {}; ROOMS.forEach(r => rooms[r.id] = {name:r.name, mat:r.mat});
-  return {furniture:defaultFurniture(), rooms, demolished:[], measures:[], finishes:fixFinishes()};
+  return {furniture:defaultFurniture(), rooms, demolished:[], measures:[], finishes:fixFinishes(), wallFin:{}};
 }
 
 const STORE = 'unitc-design-v1';
@@ -484,7 +500,7 @@ function load(){
 function fixState(s){
   const d = defaultState();
   s.rooms = Object.assign(d.rooms, s.rooms || {});
-  s.demolished = s.demolished || []; s.measures = s.measures || []; s.finishes = fixFinishes(s.finishes);
+  s.demolished = s.demolished || []; s.measures = s.measures || []; s.finishes = fixFinishes(s.finishes); s.wallFin = s.wallFin && typeof s.wallFin === 'object' ? s.wallFin : {};
   return s;
 }
 
@@ -795,6 +811,12 @@ function renderSel(){
       s += `<text x="${f.cx}" y="${f.cy+hh+24*k}" font-size="${12*k}" text-anchor="middle" fill="#b5653a" font-weight="600" pointer-events="none"
         stroke="#fff" stroke-width="${3*k}" paint-order="stroke">${f.w} × ${f.d}</text>`;
     }
+  } else if (ui.sel?.kind === 'wall'){
+    const i = +ui.sel.id.slice(1), [x0, y0, x1, y1] = WALLS[i], ws = wallSides(i), fs = 13*k;
+    s += `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="rgba(181,101,58,.25)" stroke="#b5653a" stroke-width="2.5" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+    const lab = (x, y, t, anchor) => `<text x="${x}" y="${y}" font-size="${fs}" text-anchor="${anchor}" dominant-baseline="central" fill="#b5653a" font-weight="600" stroke="#fff" stroke-width="${3*k}" paint-order="stroke" pointer-events="none">${t}</text>`;
+    if (ws.horiz){ s += lab((x0+x1)/2, y0 - 16*k, 'A', 'middle') + lab((x0+x1)/2, y1 + 16*k, 'B', 'middle'); }
+    else { s += lab(x0 - 12*k, (y0+y1)/2, 'A', 'end') + lab(x1 + 12*k, (y0+y1)/2, 'B', 'start'); }
   } else if (ui.sel?.kind === 'room'){
     const r = ROOMS.find(r => r.id === ui.sel.id);
     s += `<polygon points="${r.poly.map(p=>p.join(',')).join(' ')}" fill="rgba(181,101,58,.08)" stroke="#b5653a" stroke-width="2" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
@@ -821,6 +843,7 @@ function renderPanel(){
   renderFab();
   const p = $('#panel');
   if (ui.sel?.kind === 'furn'){ const f = getF(ui.sel.id); if (f){ p.innerHTML = furnPanel(f); bindFurnPanel(f); return; } }
+  if (ui.sel?.kind === 'wall'){ p.innerHTML = wallPanel(ui.sel.id); bindWallPanel(ui.sel.id); return; }
   if (ui.sel?.kind === 'room'){ p.innerHTML = roomPanel(ROOMS.find(r => r.id === ui.sel.id)); bindRoomPanel(); return; }
   p.innerHTML = overviewPanel(); bindOverview();
 }
@@ -845,6 +868,7 @@ function overviewPanel(){
     <div class="total"><span>${tr('套内使用面积','Net floor area')}</span><b>${fmt(tot)} m²</b></div>
     <div class="muted" style="font-size:11px;margin-top:4px">${tr('* 飘窗不计入使用面积；面积按墙体内净尺寸计算','* Balconies are excluded; areas use net inner wall dimensions from the developer DWG')}</div></section>
   <section><h3>${tr('饰面','Finishes')} <small>${tr('颜色与材质，3D 中查看','colour + texture, see them in 3D')}</small></h3>
+    <div class="muted" style="font-size:11.5px;margin:-2px 0 8px">${tr('单独一面墙：在平面图或 3D 中点击该墙。','For one wall only: click that wall on the plan or in 3D.')}${Object.keys(state.wallFin).length ? tr(` 已单独设置 ${Object.keys(state.wallFin).length} 面墙。`, ` ${Object.keys(state.wallFin).length} wall(s) have their own finish.`) : ''}</div>
     <div class="fin">${FIN_KEYS.map(([k, zh, en]) => { const f = state.finishes[k];
       const opts = Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes(k)).map(([id, v]) => `<option value="${id}" ${id === f.t ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('');
       return `<span>${tr(zh, en)}</span><input type="color" data-fin="${k}" value="${f.c}"><select data-fint="${k}">${opts}</select>
@@ -963,6 +987,32 @@ function roomPanel(r){
   <section><h3>${tr('房间内家具','Furniture in room')} <small>${tr(`${inside.length} 件`, `${inside.length} items`)}</small></h3>
     <table>${inside.map(f => `<tr class="click" data-fid="${f.id}"><td>${esc(nm(f.name))}</td><td class="r muted">${f.w}×${f.d}</td></tr>`).join('') || `<tr><td class="muted">${tr('暂无','None')}</td></tr>`}</table>
     <div class="actions"><button class="btn" id="back">${tr('← 返回总览','← Back to overview')}</button></div></section>`;
+}
+function wallPanel(id){
+  const i = +id.slice(1), w = WALLS[i], ws = wallSides(i), len = Math.max(w[2]-w[0], w[3]-w[1]), th = Math.min(w[2]-w[0], w[3]-w[1]);
+  const kind = {b:tr('钢筋混凝土（承重）','Concrete (structural)'), e:tr('外墙','Façade wall'), n:tr('内隔墙','Partition'), low:tr('矮墙','Low wall')}[w[4]];
+  const own = state.wallFin[id] || {}, def = state.finishes.wall;
+  const rn = rid => rid ? esc(nm(state.rooms[rid].name)) : tr('室外','Outside');
+  const side = (k, label, rid) => { const f = own[k], cur = f || def;
+    const opts = Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('wall')).map(([tid, v]) => `<option value="${tid}" ${tid === cur.t ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('');
+    return `<div class="wside"><h4><span>${k.toUpperCase()} · ${label}</span><small>${rn(rid)}</small></h4>
+      <div class="fin"><span>${f ? tr('本墙颜色','This wall') : tr('默认','Default')}</span><input type="color" data-wc="${k}" value="${cur.c}"><select data-wt="${k}">${opts}</select>
+      <div class="finsw">${WALL_SWATCH.map(c => `<button data-ws="${k}" data-c="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div></div>
+      ${f ? `<div class="actions"><button class="btn" data-wreset="${k}">${tr('恢复默认','Use default')}</button></div>` : ''}</div>`; };
+  return `<section><h3>${tr('墙体','Wall')} <small>${kind}</small></h3>
+    <div class="stats"><div><small>${tr('长度','Length')}</small><span class="big">${len}</span> mm</div><div><small>${tr('厚度','Thickness')}</small><span class="big">${th}</span> mm</div></div>
+    <div class="muted" style="font-size:11.5px;margin-top:6px">${tr('两面可分别设置颜色和材质；其它墙体保持默认饰面。门窗洞口上方的过梁沿用默认。','Each face can have its own colour and texture; every other wall keeps the default finish. The strip above a door or window opening keeps the default.')}</div>
+    ${side('a', ws.an, ws.a)}${side('b', ws.bn, ws.b)}
+    <div class="actions"><button class="btn" id="wBoth">${tr('两面同色（A → B）','Copy side A to B')}</button><button class="btn" id="back">${tr('← 返回总览','← Back to overview')}</button></div></section>`;
+}
+function bindWallPanel(id){
+  const set = (k, patch) => mutate(() => { const o = state.wallFin[id] || {}; o[k] = {...(o[k] || state.finishes.wall), ...patch}; state.wallFin[id] = o; });
+  document.querySelectorAll('#panel [data-wc]').forEach(i => i.onchange = () => set(i.dataset.wc, {c:i.value}));
+  document.querySelectorAll('#panel [data-wt]').forEach(i => i.onchange = () => set(i.dataset.wt, {t:i.value}));
+  document.querySelectorAll('#panel [data-ws]').forEach(b => b.onclick = () => set(b.dataset.ws, {c:b.dataset.c}));
+  document.querySelectorAll('#panel [data-wreset]').forEach(b => b.onclick = () => mutate(() => { const o = state.wallFin[id] || {}; delete o[b.dataset.wreset]; if (o.a || o.b) state.wallFin[id] = o; else delete state.wallFin[id]; }));
+  $('#wBoth').onclick = () => mutate(() => { const o = state.wallFin[id] || {}; const a = o.a || state.finishes.wall; o.a = {...a}; o.b = {...a}; state.wallFin[id] = o; });
+  $('#back').onclick = () => select(null);
 }
 function bindRoomPanel(){
   const id = ui.sel.id;
@@ -1135,7 +1185,7 @@ function endDrag(cancel){
     renderMeasure(); return;                   // 没拖动：保留起点，等第二次点击
   }
   if (d.kind === 'pan'){
-    if (!cancel && !d.moved && ui.tool === 'select') select(d.room ? {kind:'room', id:d.room} : null);
+    if (!cancel && !d.moved && ui.tool === 'select') select(d.wall ? {kind:'wall', id:d.wall} : d.room ? {kind:'room', id:d.room} : null);
     return;
   }
   if (d.moved){ commit(d.before); renderAll(); }
@@ -1172,8 +1222,8 @@ svg.addEventListener('pointerdown', e => {
     if (ui.sel?.id !== f.id) select({kind:'furn', id:f.id});
     drag = {kind:'move', id:f.id, sx:e.clientX, sy:e.clientY, ox:p.x-f.cx, oy:p.y-f.cy, before:snap(), moved:false};
   } else {
-    const room = t.closest('[data-room]');
-    drag = {kind:'pan', sx:e.clientX, sy:e.clientY, x0:view.x0, y0:view.y0, room:room && room.dataset.room, moved:false};
+    const room = t.closest('[data-room]'), wall = ui.tool === 'select' && t.closest('[data-wall]');
+    drag = {kind:'pan', sx:e.clientX, sy:e.clientY, x0:view.x0, y0:view.y0, room:room && room.dataset.room, wall:wall && wall.dataset.wall, moved:false};
   }
   svg.setPointerCapture(e.pointerId);
 });
@@ -1574,6 +1624,7 @@ function init(){
     const h = pick(e);
     if (h?.door) h.door.open = !h.door.open;
     else if (h?.fid) window.select({kind:'furn', id:h.fid});
+    else if (h?.wall) window.select({kind:'wall', id:h.wall});
     else if (h?.room) window.select({kind:'room', id:h.room});
     else window.select(null);
   });
@@ -1669,13 +1720,16 @@ function finTexCanvas(t, c){
   else if (t === 'metal' || t === 'brushed'){ for (let k = 0; k < (t === 'brushed' ? 600 : 150); k++){ shade(.9 + R()*.2, .25); g.fillRect(0, R()*Hh, W, 1); } }
   g.globalAlpha = 1; return cv;
 }
-function finMat(key){
-  const f = state.finishes?.[key] || FIN_DEFAULT[key], spec = FIN_TEX[f.t] || FIN_TEX.paint, id = key + f.c + f.t;
+function finMat(key){ return finMatOf(state.finishes?.[key] || FIN_DEFAULT[key], key === 'wall' || key === 'ceil'); }
+function finMatOf(f, lift){
+  const spec = FIN_TEX[f.t] || FIN_TEX.paint, id = (lift ? 'L' : '') + f.c + f.t;
   if (finMats.has(id)) return finMats.get(id);
   const tex = new THREE.CanvasTexture(finTexCanvas(f.t, f.c));
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1/spec[2], 1/spec[3]); tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const m = new THREE.MeshStandardMaterial({map:tex, roughness:spec[4], metalness:spec[5]});
+  // walls and ceilings: a little self-light so pale colours read as pale under the filmic tone mapping
+  if (lift){ m.emissive = new THREE.Color(f.c); m.emissiveMap = tex; m.emissiveIntensity = .3; }
   if (envTex && (spec[5] > 0 || spec[4] < .4)){ m.envMap = envTex; m.userData.env = spec[5] > .5 ? 1 : .5; m.envMapIntensity = m.userData.env*envK; matCache.set('fin:' + id, m); }
   finMats.set(id, m); return m;
 }
@@ -2279,7 +2333,7 @@ function clearGroup(g){ g.traverse(o => { if (o.geometry) o.geometry.dispose(); 
 function wallBox([x0, y0, x1, y1], yb, yt, m){
   if (yt - yb <= .001) return;
   const o = new THREE.Mesh(new THREE.BoxGeometry(M(x1-x0), yt-yb, M(y1-y0)), m || [wallMat, wallMat, capMat, wallMat, wallMat, wallMat]);
-  o.position.set(wx((x0+x1)/2), (yb+yt)/2, wz((y0+y1)/2)); o.castShadow = o.receiveShadow = true; worldUV(o); archUp.add(o);
+  o.position.set(wx((x0+x1)/2), (yb+yt)/2, wz((y0+y1)/2)); o.castShadow = o.receiveShadow = true; worldUV(o); archUp.add(o); wallBox.last = o;
   // 漫游辅助：墙体棱线 + 踢脚线，让相邻墙面、墙角一眼可分（仅漫游模式显示）
   const ln = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry), edgeMat); ln.position.copy(o.position); ln.userData.walkOnly = true; ln.visible = opt.mode === 'walk'; archUp.add(ln);
   if (yb <= .001){
@@ -2313,7 +2367,14 @@ function buildArch(){
   [...DOORS, ...SLIDES, ...OPENS.map(rect => ({rect}))].forEach(d => { const [x0, y0, x1, y1] = d.rect; const s = box(M(x1-x0), .012, M(y1-y0), mat('#d8d0c0', {roughness:.3}), wx((x0+x1)/2), 0, wz((y0+y1)/2)); s.castShadow = false; archFloor.add(s); });
   WALLS.forEach((w, i) => {
     if (state.demolished.includes('w'+i)) return;
-    wallBox(w, 0, w[4] === 'low' ? Math.min(1, top) : top);
+    const own = state.wallFin?.['w'+i];
+    let mats;
+    if (own){   // per-face: [+x, -x, top, bottom, +z, -z]; side a = north/west (-z / -x), b = south/east (+z / +x)
+      const A = own.a ? finMatOf(own.a, true) : wallMat, B = own.b ? finMatOf(own.b, true) : wallMat, horiz = (w[2]-w[0]) >= (w[3]-w[1]);
+      mats = horiz ? [wallMat, wallMat, capMat, wallMat, B, A] : [B, A, capMat, wallMat, wallMat, wallMat];
+    }
+    wallBox.last = null; wallBox(w, 0, w[4] === 'low' ? Math.min(1, top) : top, mats);
+    if (wallBox.last) wallBox.last.userData.wall = 'w'+i;
     colliders.push([wx(w[0]), wz(w[1]), wx(w[2]), wz(w[3])]);
   });
   // 门洞、飘窗洞口上方过梁
@@ -2385,7 +2446,7 @@ function buildLabels(){
 // 只重建变化的部分
 function sync(force){
   if (!inited || (!active && !force)) return;
-  const a = JSON.stringify([state.rooms, state.demolished, opt.cut, state.finishes]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, opt.cut]);
+  const a = JSON.stringify([state.rooms, state.demolished, opt.cut, state.finishes, state.wallFin]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, opt.cut]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
@@ -2502,8 +2563,9 @@ function pick(e){
   const hits = ray.intersectObjects([...(opt.furn ? [furnG] : []), archUp, archFloor], true);
   for (const h of hits){
     let o = h.object;
-    if (o.material === glassMat) continue;
+    if (o.material === glassMat || !o.isMesh) continue;
     if (o.userData.door) return {door:o.userData.door, dist:h.distance};
+    if (o.userData.wall) return {wall:o.userData.wall};
     if (o.userData.room) return {room:o.userData.room};
     while (o && !o.userData.fid && o !== scene) o = o.parent;
     if (o?.userData.fid) return {fid:o.userData.fid};
@@ -2528,11 +2590,11 @@ function groundAt(x, y){
   return {x:hit.x*1000 + OX, y:hit.z*1000 + OY, s};
 }
 function updateSel(){
-  const key = ui.sel?.kind === 'furn' ? ui.sel.id : '';
+  const key = ui.sel?.kind === 'furn' || ui.sel?.kind === 'wall' ? ui.sel.id + ':' + archUp.children.length : '';
   if (key !== selKey){
     selKey = key;
     if (selHelper){ scene.remove(selHelper); selHelper.geometry.dispose(); selHelper = null; }
-    const g = key && furnG.children.find(g => g.userData.fid === key);
+    const g = key && (ui.sel.kind === 'wall' ? archUp.children.find(o => o.userData.wall === ui.sel.id) : furnG.children.find(g => g.userData.fid === ui.sel.id));
     if (g){ selHelper = new THREE.BoxHelper(g, 0xb5653a); scene.add(selHelper); }
   }
   if (selHelper) selHelper.update();
