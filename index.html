@@ -484,7 +484,7 @@ const EL = {
   // not in the contractor's legend — added for Unit C
   fan:['FAN','Fan point',2400,'#00838f','fan'], lt:['L','Light point',0,'#c79100','light'], p15:['15A','15A power point',350,'#6a1b9a','s15'],
   dp:['DP','DP isolator',1300,'#6a1b9a','s15'], ftth:['FTTH','Fibre box',2750,'#222222','data'], led:['LED','LED strip point',0,'#c79100','light'],
-  bell:['BELL','Door bell',1300,'#d62a3a','sw'], db:['DB','Distribution board',1500,'#455a64','db']};
+  bell:['BELL','Door bell',1300,'#d62a3a','sw'], gc:['G-C','13A socket above false ceiling (hidden)',2950,'#e61ee6','s13'], db:['DB','Distribution board',1500,'#455a64','db']};
 const EL_OLD = {el_sw:'s', el_sw2:'s', el_13a:'g', el_15a:'p15', el_iso:'dp', el_ac:'acsl', el_fan:'fan', el_light:'lt', el_data:'elv'};
 const elCode = t => EL_OLD[t] || t.slice(3);
 const KIND2EL = {S:'s', BELL:'bell', G:'g', G2:'g2', FR:'rf', OVN:'ovn', DW:'dw', HOB:'hob', HOOD:'ch', TV:'tv', T:'t', FTTH:'ftth', LED:'led', AC:'acsl', FAN:'fan', DB:'db'};
@@ -496,7 +496,7 @@ const SZ = 250;
 MEP_EXIST.forEach(p => { const c = KIND2EL[p.k]; if (c) p.t = EL[c][4]; });
 LIB.push({cat:'Electrical (contractor legend)', items:['s','s1','g','g1','g2','ss','rf','ovn','mw','hob','ch','dw','gyr','tv','elv','t','acsl']
   .map(k => ['el_' + k, `${EL[k][0]} · ${EL[k][1]} @${EL[k][2]}`, SZ, SZ, EL[k][3]])});
-LIB.push({cat:'Electrical (extra points)', items:['fan','lt','p15','dp','db'].map(k => ['el_' + k, `${EL[k][0]} · ${EL[k][1]}${EL[k][2] ? ' @' + EL[k][2] : ''}`, SZ, SZ, EL[k][3]])});
+LIB.push({cat:'Electrical (extra points)', items:['gc','fan','lt','p15','dp','db'].map(k => ['el_' + k, `${EL[k][0]} · ${EL[k][1]}${EL[k][2] ? ' @' + EL[k][2] : ''}`, SZ, SZ, EL[k][3]])});
 LIB.push({cat:'Air-conditioning (sizes indicative)', items:[
   ['acc_1w18','1-way cassette 18k',1200,460,'#ffffff'], ['acc_1w24','1-way cassette 24k',1400,460,'#ffffff'],
   ['acc_2w24','2-way cassette 24k',1400,600,'#ffffff'], ['acc_4w24','4-way cassette 24k',950,950,'#ffffff'],
@@ -510,7 +510,9 @@ function outletSVG(lab, c, w, labFill = '#333', extra = ''){
     `<line x1="${-h*.45}" y1="0" x2="${h*.45}" y2="0" stroke="${c}" stroke-width="1.4" ${nv}/><line x1="0" y1="${-h*.45}" x2="0" y2="${h*.45}" stroke="${c}" stroke-width="1.4" ${nv}/>` +
     `<text x="${h*1.15}" y="${h*1.15}" font-size="${w*.62}" dominant-baseline="hanging" fill="${labFill}" font-weight="600" pointer-events="none">${lab}</text>` + extra;
 }
-function elSVG(t,w,d,c){ const e = EL[elCode(t)] || ['?']; return outletSVG(e[0], c, Math.min(w,d)); }
+function elSVG(t,w,d,c){ const code = elCode(t), e = EL[code] || ['?'], m = Math.min(w,d);
+  if (code === 'gc') return `<rect x="${-m*.75}" y="${-m*.75}" width="${m*1.5}" height="${m*1.5}" fill="none" stroke="${c}" stroke-width="1.4" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>` + outletSVG(e[0], c, m, '#333', `<text x="${-m*.8}" y="${-m*.85}" font-size="${m*.42}" fill="${c}" font-weight="700">ABOVE CLG</text>`);
+  return outletSVG(e[0], c, m); }
 function accSVG(t,w,d){
   const [kind, k] = ACC[t] || ['1-way', 18], x = -w/2, y = -d/2, G = '#3fae2a', nv = 'vector-effect="non-scaling-stroke"';
   const band = (bx, by, bw, bh, vert) => { let s = `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#e3f3df" stroke="${G}" stroke-width="1" ${nv}/>`;
