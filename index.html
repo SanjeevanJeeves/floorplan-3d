@@ -1957,7 +1957,7 @@ function init(){
   let fdrag = null;
   host.addEventListener('pointerdown', e => {
     if (e.target !== cv || !e.isPrimary || anim || opt.mode !== 'orbit' || ui.sel?.kind !== 'furn') return;
-    const h = pick(e), f = h?.fid === ui.sel.id && getF(h.fid), g = f && groundAt(e.clientX, e.clientY);
+    const h = pick(e), f = h?.fid === ui.sel.id && getF(h.fid), g = f && dragPt(f, e.clientX, e.clientY);
     if (!g) return;
     fdrag = {id:f.id, pid:e.pointerId, sx:e.clientX, sy:e.clientY, ox:g.x - f.cx, oy:g.y - f.cy, before:snap(), moved:false};
     orbit.enabled = false; fly = null; cv.setPointerCapture(e.pointerId);
@@ -1965,7 +1965,7 @@ function init(){
   cv.addEventListener('pointermove', e => {
     if (!fdrag || e.pointerId !== fdrag.pid) return;
     if (!fdrag.moved && Math.hypot(e.clientX - fdrag.sx, e.clientY - fdrag.sy) < TAP) return;
-    const f = getF(fdrag.id), g = groundAt(e.clientX, e.clientY); if (!f || !g) return;
+    const f = getF(fdrag.id), g = dragPt(f, e.clientX, e.clientY); if (!f || !g) return;
     fdrag.moved = true; cv.style.cursor = 'grabbing';
     [f.cx, f.cy] = snapMove(f, g.x - fdrag.ox, g.y - fdrag.oy);
     furnG.children.find(o => o.userData.fid === f.id)?.position.set(wx(f.cx), 0, wz(f.cy));   // 拖动中只挪模型，松手再整体同步
@@ -2959,6 +2959,14 @@ function pick(e){
 }
 // 屏幕点 → 地面（y = 0）上的户型坐标 mm；s = 该处每 mm 对应的屏幕像素，用于拖放时的幽灵图大小
 const ground0 = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+function planeAt(x, y, h){
+  if (!active || anim) return null;
+  const r = renderer.domElement.getBoundingClientRect(), hit = new THREE.Vector3();
+  ptr.set((x - r.left)/r.width*2 - 1, -(y - r.top)/r.height*2 + 1); ray.setFromCamera(ptr, camera);
+  if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -h), hit) || hit.distanceTo(camera.position) > 60) return null;
+  return {x:hit.x*1000 + OX, y:hit.z*1000 + OY};
+}
+const dragPt = (f, x, y) => f?.type === 'bulkhead' ? planeAt(x, y, (f.zb || 2840)/1000) : groundAt(x, y);
 function groundAt(x, y){
   if (!active || anim) return null;
   const r = renderer.domElement.getBoundingClientRect(), hit = new THREE.Vector3();
