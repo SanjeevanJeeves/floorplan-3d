@@ -497,6 +497,9 @@ MEP_EXIST.forEach(p => { const c = KIND2EL[p.k]; if (c) p.t = EL[c][4]; });
 LIB.push({cat:'Electrical (contractor legend)', items:['s','s1','g','g1','g2','ss','rf','ovn','mw','hob','ch','dw','gyr','tv','elv','t','acsl']
   .map(k => ['el_' + k, `${EL[k][0]} · ${EL[k][1]} @${EL[k][2]}`, SZ, SZ, EL[k][3]])});
 LIB.push({cat:'Electrical (extra points)', items:['gc','fan','lt','p15','dp','db'].map(k => ['el_' + k, `${EL[k][0]} · ${EL[k][1]}${EL[k][2] ? ' @' + EL[k][2] : ''}`, SZ, SZ, EL[k][3]])});
+LIB.push({cat:'Ceiling (false ceiling)', items:[
+  ['bulkhead','Bulkhead strip 450 · underside 2,840',1600,450,'#fcfbf8'], ['bulkhead','Bulkhead strip 600 · underside 2,840',1600,600,'#fcfbf8'],
+  ['bulkhead','Bulkhead (AC / services) 650',1600,650,'#fcfbf8']]});
 LIB.push({cat:'Air-conditioning (sizes indicative)', items:[
   ['acc_1w18','1-way cassette 18k',1200,460,'#ffffff'], ['acc_1w24','1-way cassette 24k',1400,460,'#ffffff'],
   ['acc_2w24','2-way cassette 24k',1400,600,'#ffffff'], ['acc_4w24','4-way cassette 24k',950,950,'#ffffff'],
@@ -852,6 +855,7 @@ const DASH = 'stroke-dasharray="4 3"';
 function furnSVG(t,w,d,c){
   if (t.startsWith('el_')) return elSVG(t,w,d,c);
   if (t.startsWith('acc_')) return accSVG(t,w,d);
+  if (t === 'bulkhead'){ const x = -w/2, y = -d/2; return `<rect x="${x}" y="${y}" width="${w}" height="${d}" fill="${c}" fill-opacity=".45" stroke="#8a6d3b" stroke-width="1.4" stroke-dasharray="8 4" vector-effect="non-scaling-stroke"/>` + `<line x1="${x}" y1="${y+d}" x2="${x+w}" y2="${y}" stroke="#8a6d3b" stroke-width=".6" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`; }
   const x = -w/2, y = -d/2, m = Math.min(w,d);
   switch (t){
     case 'bed': {
@@ -954,7 +958,7 @@ function furnSVG(t,w,d,c){
 }
 
 /* ======================= 渲染 ======================= */
-const NOLABEL = ['acc_1w18','acc_1w24','acc_2w24','acc_4w24','acc_w12','acc_w18','plant','floorlamp','sidetable','barstool','beanbag'];
+const NOLABEL = ['bulkhead','acc_1w18','acc_1w24','acc_2w24','acc_4w24','acc_w12','acc_w18','plant','floorlamp','sidetable','barstool','beanbag'];
 function renderRooms(){
   let s = '';
   ROOMS.forEach(r => s += `<polygon class="room" data-room="${r.id}" points="${r.poly.map(p=>p.join(',')).join(' ')}" fill="url(#m-${state.rooms[r.id].mat})"/>`);
@@ -1328,6 +1332,7 @@ function furnPanel(f){
       <label>${tr('中心','Center')} Y (mm)<input type="number" id="fY" value="${Math.round(f.cy)}" step="10"></label>
       <label>${tr('旋转','Rotation')} (°)<input type="number" id="fR" value="${f.rot}" step="15"></label>
       <label>${tr('颜色','Color')}<input type="color" id="fC" value="${f.color}"></label>
+      ${f.type === 'bulkhead' ? `<label>Underside height (mm)<input type="number" id="fZb" value="${f.zb || 2840}" step="10" min="2100" max="3100"></label><label>Finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('ceil') || v[6].split(' ').includes('wall')).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${WALL_SWATCH.map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">Depth = how far it comes out from the wall (developer: 450). It hangs from the slab down to the underside height; the 3,110 ceiling meets its inner edge. Hidden in 3D when walls are cut.</div>` : ''}
     </div>
     <div class="muted" style="margin-top:8px">${tr('占地面积','Footprint')} ${fmt(f.w*f.d/1e6)} m²</div>
     <div class="actions">
@@ -1345,6 +1350,9 @@ function bindFurnPanel(f){
   num('#fD', (g,v) => g.d = Math.max(50, Math.round(v)));
   num('#fX', (g,v) => g.cx = v); num('#fY', (g,v) => g.cy = v); num('#fR', (g,v) => g.rot = norm(v));
   $('#fC').onchange = e => upd(g => g.color = e.target.value);
+  if ($('#fZb')) num('#fZb', (g,v) => g.zb = Math.max(2100, Math.min(3100, Math.round(v))));
+  if ($('#fTex')) $('#fTex').onchange = e => upd(g => g.tex = e.target.value);
+  document.querySelectorAll('#panel [data-fsw]').forEach(b => b.onclick = () => upd(g => g.color = b.dataset.fsw));
   $('#aRot').onclick = () => rotateSel(90);
   $('#aDup').onclick = duplicateSel;
   $('#aDel').onclick = deleteSel;
@@ -2413,6 +2421,11 @@ function buildFurniture(f){
       vase(g, 0, top, 0, .05, .18, '#e9e2d6', R);
       break;
     }
+    case 'bulkhead': {
+      const lo = (f.zb || 2840)/1000, hi = H, m = finMatOf({c:f.color || '#fcfbf8', t:f.tex || 'paint'}, true);
+      g.add(box(w, hi - lo, d, m, 0, lo, 0)); g.userData.ceil = lo;
+      break;
+    }
     case 'counterlow': {
       const cm = mat(c, {roughness:.45}), stone = mat('#dcd7cf', {roughness:.22}), n = Math.max(1, Math.round(w/.6)), fz = d/2 - .04;
       g.add(box(w - .01, .1, d - .1, '#4a4641', 0, 0, -.05), box(w, .72, d - .04, cm, 0, .1, -.02));
@@ -2819,6 +2832,7 @@ function sync(force){
   const a = JSON.stringify([state.rooms, state.demolished, opt.cut, state.finishes, state.wallFin, state.newWalls, ui.layers.orig]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, opt.cut]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
+  furnG.children.forEach(o => { if (o.userData.ceil) o.visible = opt.cut > o.userData.ceil; });
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
 }
 
