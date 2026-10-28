@@ -254,6 +254,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
     <div class="grp only2d" id="tools">
       <button class="btn on" data-tool="select" title="选择 / 移动 (V)" data-en-title="Select / Move (V)" data-en="Select">选择</button>
       <button class="btn" data-tool="measure" title="测量 (M)" data-en-title="Measure (M)" data-en="Measure">测量</button>
+      <button class="btn" data-tool="wall" title="Draw a new wall (W)" data-en-title="Draw a new wall (W)" data-en="Draw wall">画墙</button>
       <button class="btn" data-tool="demolish" title="拆改非承重墙 (X)" data-en-title="Demolish non-bearing walls (X)" data-en="Demolish">拆改墙体</button>
     </div>
     <div class="grp only2d">
@@ -281,11 +282,12 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip on" data-layer="labels" data-en="Rooms">房间</button>
       <button class="btn chip on" data-layer="furn" data-en="Furniture">家具</button>
       <button class="btn chip" data-layer="grid" data-en="Grid">网格</button>
-      <button class="btn chip" data-layer="bearing" data-en="Bearing walls">承重墙</button>
+      <button class="btn chip" data-layer="bearing" data-en="Structure">承重墙</button>
+      <button class="btn chip" data-layer="orig" title="Show the developer's original walls (hides your new walls and restores removed ones)" data-en-title="Show the developer's original walls (hides your new walls and restores removed ones)" data-en="Original">原始方案</button>
       <button class="btn chip" data-layer="mepEx" data-en="Existing MEP">现有机电</button>
-      <button class="btn chip" data-layer="mepPl" data-en="Existing plumbing">现有给排水</button>
+      <button class="btn chip" data-layer="mepPl" data-en="Plumbing">现有给排水</button>
       <button class="btn chip on" data-layer="mepNew" data-en="New points">新点位</button>
-      <details class="menu mepmenu"><summary class="btn chip" data-en="Point types ▾">点位类型 ▾</summary><div class="menu-pop mep-pop" id="mepPop"></div></details>
+      <details class="menu mepmenu"><summary class="btn chip" data-en="Types ▾">点位类型 ▾</summary><div class="menu-pop mep-pop" id="mepPop"></div></details>
       <button class="btn chip on" data-layer="wallSnap" title="拖动家具时贴墙吸附" data-en-title="Snap furniture to walls while dragging" data-en="Wall snap">贴墙吸附</button>
     </div>
     <div class="grp only3d">
@@ -641,6 +643,7 @@ function mepSchedule(){
     const link = state.furniture.find(f => f.from === p.id);
     rows.push([p.id, ACTS.find(t => t[0] === a)[1].toUpperCase(), code ? EL[code][0] : (PL_TAG[p.k] || 'AC'), p.lb, code ? EL[code][2] : '', roomAt(x, y), Math.round(x), Math.round(y),
       link ? `→ new position ${Math.round(link.cx)}, ${Math.round(link.cy)} (${roomAt(link.cx, link.cy)})` : '', MA()[p.id]?.note || '']); });
+  rows.push(...wallRows());
   let n = 0;
   state.furniture.filter(isEl).forEach(f => { const d = elDesc(f.type); rows.push([f.from ? `${f.from}-R` : `N${String(++n).padStart(2, '0')}`, f.from ? 'RELOCATED TO' : 'NEW', d.lab, d.desc, d.h, roomAt(f.cx, f.cy), Math.round(f.cx), Math.round(f.cy), f.from || '', f.note || '']); });
   return rows;
@@ -648,6 +651,71 @@ function mepSchedule(){
 function exportMep(){
   const csv = mepSchedule().map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
   download('UnitC-MEP-schedule.csv', new Blob(['﻿' + csv], {type:'text/csv'}));
+}
+
+// ===== New walls (drawn by the user) + Original / Proposed view =====
+const NW = () => (state.newWalls ||= []);
+const nwRect = w => [w.x0, w.y0, w.x1, w.y1];
+const nwLen = w => Math.round(Math.max(w.x1 - w.x0, w.y1 - w.y0));
+const nwT = w => Math.round(Math.min(w.x1 - w.x0, w.y1 - w.y0));
+const isOrig = () => !!ui.layers.orig;
+let wallT = 100;
+function nwFromLine(a, b, t){
+  const hz = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y), h = t/2;
+  return hz ? {x0:Math.min(a.x, b.x), x1:Math.max(a.x, b.x), y0:a.y - h, y1:a.y + h} : {x0:a.x - h, x1:a.x + h, y0:Math.min(a.y, b.y), y1:Math.max(a.y, b.y)};
+}
+function orthoEnd(a, q){ return Math.abs(q.x - a.x) >= Math.abs(q.y - a.y) ? {x:q.x, y:a.y} : {x:a.x, y:q.y}; }
+function nwSVG(){
+  const pat = `<defs><pattern id="nwHatch" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)"><rect width="80" height="80" fill="#f4e3d6"/><line x1="0" y1="0" x2="0" y2="80" stroke="#b5653a" stroke-width="22"/></pattern></defs>`;
+  if (isOrig()) return pat;
+  return pat + NW().map(w => { const sel = ui.sel?.kind === 'nwall' && ui.sel.id === w.id;
+    return `<rect class="wall" data-nwall="${w.id}" x="${w.x0}" y="${w.y0}" width="${w.x1-w.x0}" height="${w.y1-w.y0}" fill="url(#nwHatch)" stroke="${sel ? '#b5653a' : '#8a4a28'}" stroke-width="${sel ? 2.5 : 1.2}" vector-effect="non-scaling-stroke"><title>NEW WALL · ${nwLen(w)} long × ${nwT(w)} thick · ${w.h ? 'h ' + w.h + ' mm' : 'full height'}${w.note ? ' · ' + esc(w.note) : ''}</title></rect>`; }).join('');
+}
+function nwPreview(){
+  if (!ui.wA || !ui.wCur) return '';
+  const r = nwFromLine(ui.wA, ui.wCur, wallT), k = 1/view.s, L = Math.round(Math.hypot(ui.wCur.x - ui.wA.x, ui.wCur.y - ui.wA.y));
+  return `<rect x="${r.x0}" y="${r.y0}" width="${r.x1-r.x0}" height="${r.y1-r.y0}" fill="rgba(181,101,58,.35)" stroke="#b5653a" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>` +
+    `<text x="${(r.x0+r.x1)/2}" y="${(r.y0+r.y1)/2 - 14*k}" font-size="${13*k}" text-anchor="middle" fill="#b5653a" font-weight="700" stroke="#fff" stroke-width="${3*k}" paint-order="stroke">${L} × ${wallT}</text>` +
+    `<circle cx="${ui.wA.x}" cy="${ui.wA.y}" r="${3*k}" fill="#b5653a"/>`;
+}
+function addNewWall(a, b){
+  const L = Math.hypot(b.x - a.x, b.y - a.y); if (L < 100) return toast('Wall too short — drag at least 100 mm');
+  const w = {id:'nw' + Date.now().toString(36) + (_n++), ...nwFromLine(a, b, wallT), h:0};
+  ui.sel = {kind:'nwall', id:w.id}; mutate(() => NW().push(w));
+  toast(`New wall ${Math.round(L)} × ${wallT} mm — set thickness / height on the right`);
+}
+function nwPanel(id){
+  const w = NW().find(w => w.id === id); if (!w) return '';
+  const hz = (w.x1 - w.x0) >= (w.y1 - w.y0);
+  return `<section><h3>New wall</h3><div class="form">
+    <label>Thickness (mm)<select id="nwT">${[75, 100, 115, 150, 200, 230].map(t => `<option ${t === nwT(w) ? 'selected' : ''}>${t}</option>`).join('')}${[75,100,115,150,200,230].includes(nwT(w)) ? '' : `<option selected>${nwT(w)}</option>`}</select></label>
+    <label>Length (mm)<input type="number" id="nwL" value="${nwLen(w)}" step="10" min="100"></label>
+    <label>Height<select id="nwH"><option value="0" ${!w.h ? 'selected' : ''}>Full height</option>${[900, 1100, 1200, 1500, 2100, 2400].map(h => `<option value="${h}" ${w.h === h ? 'selected' : ''}>${h} mm</option>`).join('')}</select></label>
+    <label>Run<input value="${hz ? 'East–west' : 'North–south'}" disabled></label>
+    <label>${hz ? 'Start X' : 'X (centre)'} (mm)<input type="number" id="nwX" value="${Math.round(hz ? w.x0 : (w.x0 + w.x1)/2)}" step="10"></label>
+    <label>${hz ? 'Y (centre)' : 'Start Y'} (mm)<input type="number" id="nwY" value="${Math.round(hz ? (w.y0 + w.y1)/2 : w.y0)}" step="10"></label>
+    <label class="full">Material / note<input id="nwN" value="${esc(w.note || '')}" placeholder="e.g. 100 block, gypsum, glass…"></label></div>
+    <div class="muted" style="font-size:11.5px;margin:6px 0">Drag the wall on the plan to move it (it snaps to other walls). Room: ${esc(roomAt((w.x0+w.x1)/2, (w.y0+w.y1)/2))}.</div>
+    <div class="actions"><button class="btn danger" id="nwDel">Delete wall</button><button class="btn" id="nwBack">← Back</button></div></section>`;
+}
+function bindNwPanel(id){
+  const w = NW().find(w => w.id === id); if (!w) return;
+  const hz = () => (w.x1 - w.x0) >= (w.y1 - w.y0);
+  $('#nwT').onchange = e => mutate(() => { const t = +e.target.value; wallT = t; if (hz()){ const c = (w.y0 + w.y1)/2; w.y0 = c - t/2; w.y1 = c + t/2; } else { const c = (w.x0 + w.x1)/2; w.x0 = c - t/2; w.x1 = c + t/2; } });
+  $('#nwL').onchange = e => mutate(() => { const L = Math.max(100, +e.target.value); if (hz()) w.x1 = w.x0 + L; else w.y1 = w.y0 + L; });
+  $('#nwH').onchange = e => mutate(() => w.h = +e.target.value);
+  $('#nwX').onchange = e => mutate(() => { const v = +e.target.value; if (hz()){ const L = w.x1 - w.x0; w.x0 = v; w.x1 = v + L; } else { const t = w.x1 - w.x0; w.x0 = v - t/2; w.x1 = v + t/2; } });
+  $('#nwY').onchange = e => mutate(() => { const v = +e.target.value; if (hz()){ const t = w.y1 - w.y0; w.y0 = v - t/2; w.y1 = v + t/2; } else { const L = w.y1 - w.y0; w.y0 = v; w.y1 = v + L; } });
+  $('#nwN').onchange = e => mutate(() => w.note = e.target.value);
+  $('#nwDel').onclick = () => { ui.sel = null; mutate(() => state.newWalls = NW().filter(x => x.id !== id)); };
+  $('#nwBack').onclick = () => select(null);
+}
+function wallRows(){
+  const rows = [];
+  state.demolished.forEach(id => { const w = WALLS[+id.slice(1)]; if (!w) return; const L = Math.max(w[2]-w[0], w[3]-w[1]), T = Math.min(w[2]-w[0], w[3]-w[1]);
+    rows.push([id.toUpperCase(), 'WALL REMOVED', 'Wall', `${L} long × ${T} thick (${w[4] === 'e' ? 'exterior/panel' : 'partition'})`, 'full height', roomAt((w[0]+w[2])/2, (w[1]+w[3])/2), Math.round((w[0]+w[2])/2), Math.round((w[1]+w[3])/2), '', '']); });
+  NW().forEach((w, i) => rows.push([`NW${String(i+1).padStart(2,'0')}`, 'NEW WALL', 'Wall', `${nwLen(w)} long × ${nwT(w)} thick`, w.h ? w.h + ' mm' : 'full height', roomAt((w.x0+w.x1)/2, (w.y0+w.y1)/2), Math.round((w.x0+w.x1)/2), Math.round((w.y0+w.y1)/2), '', w.note || '']));
+  return rows;
 }
 const typeColor = t => { for (const c of LIB) for (const i of c.items) if (i[0]===t) return i[4]; return '#eee'; };
 
@@ -691,7 +759,7 @@ function fixFinishes(f){ const o = JSON.parse(JSON.stringify(FIN_DEFAULT)); for 
 
 function defaultState(){
   const rooms = {}; ROOMS.forEach(r => rooms[r.id] = {name:r.name, mat:r.mat});
-  return {furniture:defaultFurniture(), rooms, demolished:[], measures:[], finishes:fixFinishes(), wallFin:{}};
+  return {furniture:defaultFurniture(), rooms, demolished:[], measures:[], finishes:fixFinishes(), wallFin:{}, newWalls:[]};
 }
 
 const STORE = 'unitc-design-v1';
@@ -702,7 +770,7 @@ function load(){
 function fixState(s){
   const d = defaultState();
   s.rooms = Object.assign(d.rooms, s.rooms || {});
-  s.demolished = s.demolished || []; s.measures = s.measures || []; s.finishes = fixFinishes(s.finishes); s.wallFin = s.wallFin && typeof s.wallFin === 'object' ? s.wallFin : {};
+  s.demolished = s.demolished || []; s.newWalls = Array.isArray(s.newWalls) ? s.newWalls : []; s.measures = s.measures || []; s.finishes = fixFinishes(s.finishes); s.wallFin = s.wallFin && typeof s.wallFin === 'object' ? s.wallFin : {};
   return s;
 }
 
@@ -718,7 +786,7 @@ const svg = $('#plan');
 /* ======================= 状态 / 历史 / 存储 ======================= */
 let state = load() || defaultState();
 const ui = {tool:'select', sel:null, mA:null, mCur:null,
-  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepPl:false, mepNew:true}};
+  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepPl:false, mepNew:true, orig:false}};
 let view = {x0:0, y0:0, s:.06};
 const undoStack = [], redoStack = [];
 
@@ -738,7 +806,7 @@ const bbox = poly => { const xs = poly.map(p=>p[0]), ys = poly.map(p=>p[1]); ret
 function aabb(f){ const a = f.rot*Math.PI/180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a)); return {hw:f.w/2*c + f.d/2*s, hh:f.w/2*s + f.d/2*c}; }
 const fmt = (n, d=2) => n.toFixed(d);
 const norm = a => ((Math.round(a) % 360) + 360) % 360;
-function snapRects(){ return WALLS.filter((w,i) => !state.demolished.includes('w'+i)).concat(WINS); }
+function snapRects(){ return WALLS.filter((w,i) => !state.demolished.includes('w'+i)).concat(WINS, NW().map(nwRect)); }
 
 /* ======================= 颜色 / 材质图案 ======================= */
 function hex2rgb(h){ h = h.replace('#',''); if (h.length===3) h = h.split('').map(c=>c+c).join(''); const n = parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
@@ -901,12 +969,12 @@ function renderFurn(){
 
 function renderWalls(){
   $('#gWalls').innerHTML = WALLS.map((w,i) => {
-    const [x0,y0,x1,y1,k] = w, id = 'w'+i, dem = state.demolished.includes(id);
+    const [x0,y0,x1,y1,k] = w, id = 'w'+i, dem = !isOrig() && state.demolished.includes(id);
     let fill = k==='b' ? (ui.layers.bearing ? '#b8412c' : '#26241f') : k==='low' ? '#e9e3d8' : k==='e' ? '#8f897d' : '#a7a195';
     let ex = k==='low' ? 'stroke="#8f897d" stroke-width="1" vector-effect="non-scaling-stroke"' : '';
     if (dem){ fill = 'rgba(198,91,58,.12)'; ex = 'stroke="#c65b3a" stroke-width="1.2" stroke-dasharray="5 3" vector-effect="non-scaling-stroke"'; }
     return `<rect class="wall" data-wall="${id}" x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="${fill}" ${ex}/>`;
-  }).join('');
+  }).join('') + nwSVG();
 }
 
 function renderOpenings(){
@@ -994,7 +1062,7 @@ function renderMeasure(){
   let s = state.measures.map(m => one(m.a,m.b)).join('');
   if (ui.mA && ui.mCur) s += one(ui.mA, ui.mCur, true);
   if (ui.mA) s += `<circle cx="${ui.mA.x}" cy="${ui.mA.y}" r="${3*k}" fill="#2f5d62"/>`;
-  $('#gMeasure').innerHTML = s;
+  $('#gMeasure').innerHTML = s + nwPreview();
 }
 
 function renderSel(){
@@ -1047,6 +1115,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 function renderPanel(){
   renderFab();
   const p = $('#panel');
+  if (ui.sel?.kind === 'nwall'){ p.innerHTML = nwPanel(ui.sel.id); bindNwPanel(ui.sel.id); return; }
   if (ui.sel?.kind === 'mep'){ p.innerHTML = mepPanel(ui.sel.id); bindMepPanel(ui.sel.id); return; }
   if (ui.sel?.kind === 'furn'){ const f = getF(ui.sel.id); if (f){ p.innerHTML = (isEl(f) ? elInfo(f) : '') + furnPanel(f); bindFurnPanel(f); const n = $('#elNote'); if (n) n.onchange = e => mutate(() => f.note = e.target.value); return; } }
   if (ui.sel?.kind === 'wall'){ p.innerHTML = wallPanel(ui.sel.id); bindWallPanel(ui.sel.id); return; }
@@ -1269,7 +1338,7 @@ function bindFurnPanel(f){
 /* ======================= 操作 ======================= */
 function select(sel){ ui.sel = sel; renderSel(); renderPanel(); }
 function rotateSel(d){ if (ui.sel?.kind==='furn') mutate(() => { const f = getF(ui.sel.id); f.rot = norm(f.rot + d); }); }
-function deleteSel(){ if (ui.sel?.kind==='furn'){ const id = ui.sel.id; ui.sel = null; mutate(() => state.furniture = state.furniture.filter(f => f.id !== id)); } }
+function deleteSel(){ if (ui.sel?.kind==='nwall'){ const id = ui.sel.id; ui.sel = null; mutate(() => state.newWalls = NW().filter(w => w.id !== id)); return; } if (ui.sel?.kind==='furn'){ const id = ui.sel.id; ui.sel = null; mutate(() => state.furniture = state.furniture.filter(f => f.id !== id)); } }
 function duplicateSel(){
   if (ui.sel?.kind !== 'furn') return;
   const f = getF(ui.sel.id), n = {...f, id:uid(), cx:f.cx+200, cy:f.cy+200};
@@ -1299,14 +1368,16 @@ function addItem(it, x, y){
 function toggleWall(id){
   const w = WALLS[+id.slice(1)];
   if (w[4]==='b') return toast(tr('承重墙（黑色）不可拆除', 'Load-bearing walls (black) cannot be removed'));
-  if (w[4]==='e') return toast(tr('外墙属于建筑外围护结构，不建议拆除', 'Exterior walls are part of the building envelope and should not be removed'));
+  if (isOrig()) return toast('Switch off "Original plan" to edit walls');
+  if (w[4]==='e' && !state.demolished.includes(id)) toast('Exterior / panel wall — check with the developer before removing');
   const on = state.demolished.includes(id);
   mutate(() => state.demolished = on ? state.demolished.filter(x => x!==id) : [...state.demolished, id]);
+  if (w[4]==='e') return;
   toast(on ? tr('已恢复墙体', 'Wall restored') : tr(`已标记拆除 ${Math.max(w[2]-w[0], w[3]-w[1])} mm 墙体`, `Marked ${Math.max(w[2]-w[0], w[3]-w[1])} mm of wall for removal`));
 }
 
 function setTool(t){
-  ui.tool = t; ui.mA = null; ui.mCur = null;
+  ui.tool = t; ui.mA = null; ui.mCur = null; ui.wA = null; ui.wCur = null;
   svg.setAttribute('class', 'tool-' + t);
   document.querySelectorAll('#tools .btn').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
   syncModeHint();
@@ -1316,6 +1387,7 @@ function syncModeHint(){
   const hints = {select:'',
     measure:COARSE ? tr('按住拖出测量线，或依次点两点 · 靠近墙面自动吸附 · 点「选择」退出', 'Hold and drag a line, or tap two points · snaps to walls · tap "Select" to exit')
       : tr('点击两点（或按住拖动）测量距离 · 靠近墙面自动吸附 · Shift 锁定水平/垂直 · Esc 取消', 'Click two points (or drag) to measure · snaps to walls · Shift locks horizontal/vertical · Esc cancels'),
+    wall:'Drag to draw a straight wall (or click start and end) · snaps to walls · thickness/height on the right after drawing · Esc cancels',
     demolish:tr('点击灰色非承重墙标记拆除，再次点击恢复 · 黑色承重墙不可拆', 'Click a grey non-bearing wall to remove it, click again to restore · black bearing walls cannot be removed')};
   const h = $('#modehint'); h.textContent = hints[ui.tool]; h.classList.toggle('show', !!hints[ui.tool]);
 }
@@ -1370,7 +1442,9 @@ function snapPoint(p, shift){
     for (const ex of [r[0], r[2]]) if (Math.abs(ex-p.x) < bx){ bx = Math.abs(ex-p.x); x = ex; }
     for (const ey of [r[1], r[3]]) if (Math.abs(ey-p.y) < by){ by = Math.abs(ey-p.y); y = ey; }
   }
-  if (shift && ui.mA){ if (Math.abs(x-ui.mA.x) > Math.abs(y-ui.mA.y)) y = ui.mA.y; else x = ui.mA.x; }
+  const A = ui.mA || ui.wA;
+  if (shift && A){ if (Math.abs(x-A.x) > Math.abs(y-A.y)) y = A.y; else x = A.x; return {x, y}; }
+  if (false){ if (Math.abs(x-ui.mA.x) > Math.abs(y-ui.mA.y)) y = ui.mA.y; else x = ui.mA.x; }
   return {x, y};
 }
 
@@ -1393,6 +1467,12 @@ function endDrag(cancel){
     }
     renderMeasure(); return;                   // 没拖动：保留起点，等第二次点击
   }
+  if (d.kind === 'nwdraw'){
+    if (cancel){ ui.wA = ui.wCur = null; renderMeasure(); return; }
+    if (d.moved && ui.wA && ui.wCur){ const a = ui.wA, b = ui.wCur; ui.wA = ui.wCur = null; renderMeasure(); addNewWall(a, b); }
+    return;
+  }
+  if (d.kind === 'nwmove'){ if (d.moved){ commit(d.before); renderAll(); } return; }
   if (d.kind === 'pan'){
     if (!cancel && !d.moved && ui.tool === 'select') select(d.wall ? {kind:'wall', id:d.wall} : d.room ? {kind:'room', id:d.room} : null);
     return;
@@ -1421,7 +1501,18 @@ svg.addEventListener('pointerdown', e => {
     else { const a = ui.mA; ui.mA = null; ui.mCur = null; if (Math.hypot(q.x-a.x, q.y-a.y) > 20) mutate(() => state.measures.push({a, b:q})); }
     renderMeasure(); return;
   }
+  if (ui.tool === 'wall'){
+    const q = snapPoint(p, false);
+    if (!ui.wA){ ui.wA = q; ui.wCur = q; drag = {kind:'nwdraw', sx:e.clientX, sy:e.clientY, moved:false}; svg.setPointerCapture(e.pointerId); }
+    else { const a = ui.wA, b = orthoEnd(a, q); ui.wA = ui.wCur = null; renderMeasure(); addNewWall(a, b); }
+    renderMeasure(); return;
+  }
   const h = t.closest('[data-handle]');
+  if (ui.tool === 'select' && !isOrig() && t.closest('[data-nwall]')){
+    const w = NW().find(w => w.id === t.closest('[data-nwall]').dataset.nwall);
+    if (ui.sel?.id !== w.id) select({kind:'nwall', id:w.id});
+    drag = {kind:'nwmove', id:w.id, sx:e.clientX, sy:e.clientY, p0:p, r0:{...w}, before:snap(), moved:false}; svg.setPointerCapture(e.pointerId); return;
+  }
   if (h && ui.sel?.kind === 'furn'){
     drag = {kind:h.dataset.handle, id:ui.sel.id, sx:e.clientX, sy:e.clientY, before:snap(), moved:false};
   } else if (ui.tool === 'demolish' && t.closest('[data-wall]')){
@@ -1453,12 +1544,23 @@ svg.addEventListener('pointermove', e => {
     const room = e.target.closest && e.target.closest('[data-room]');
     $('#hover').innerHTML = room ? `<b>${esc(state.rooms[room.dataset.room].name)}</b> ${fmt(area(ROOMS.find(r=>r.id===room.dataset.room).poly))} m²` : '';
     if (ui.tool === 'measure' && ui.mA){ ui.mCur = snapPoint(p, e.shiftKey); renderMeasure(); }
+    if (ui.tool === 'wall' && ui.wA){ ui.wCur = orthoEnd(ui.wA, snapPoint(p, false)); renderMeasure(); }
     return;
   }
   const far = Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy) >= TAP;
   if (drag.kind === 'measure'){
     if (far) drag.moved = true;
     ui.mCur = snapPoint(p, e.shiftKey); renderMeasure(); return;
+  }
+  if (drag.kind === 'nwdraw'){ if (far) drag.moved = true; ui.wCur = orthoEnd(ui.wA, snapPoint(p, false)); renderMeasure(); return; }
+  if (drag.kind === 'nwmove'){
+    if (!drag.moved && !far) return; drag.moved = true;
+    const w = NW().find(w => w.id === drag.id); if (!w) return; let dx = Math.round((p.x - drag.p0.x)/10)*10, dy = Math.round((p.y - drag.p0.y)/10)*10;
+    const tol = 8/view.s, r0 = drag.r0;
+    if (ui.layers.wallSnap) for (const r of snapRects()){ if (r[0] === r0.x0 && r[1] === r0.y0) continue;
+      for (const ex of [r[0], r[2]]) for (const wx_ of [r0.x0 + dx, r0.x1 + dx]) if (Math.abs(ex - wx_) < tol) dx += ex - wx_;
+      for (const ey of [r[1], r[3]]) for (const wy_ of [r0.y0 + dy, r0.y1 + dy]) if (Math.abs(ey - wy_) < tol) dy += ey - wy_; }
+    w.x0 = r0.x0 + dx; w.x1 = r0.x1 + dx; w.y0 = r0.y0 + dy; w.y1 = r0.y1 + dy; renderWalls(); return;
   }
   if (drag.kind === 'pan'){
     if (!drag.moved && !far) return;
@@ -1519,10 +1621,11 @@ document.addEventListener('keydown', e => {
   else if (k === 'v') setTool('select');
   else if (k === 'm') setTool('measure');
   else if (k === 'x') setTool('demolish');
+  else if (k === 'w') setTool('wall');
   else if (k === 'f') fitView();
   else if (k === 'r') rotateSel(e.shiftKey ? -90 : 90);
   else if (k === 'delete' || k === 'backspace'){ e.preventDefault(); deleteSel(); }
-  else if (k === 'escape'){ if (ui.mA){ ui.mA = null; renderMeasure(); } else { if (ui.tool !== 'select') setTool('select'); select(null); } }
+  else if (k === 'escape'){ if (ui.wA){ ui.wA = ui.wCur = null; renderMeasure(); } else if (ui.mA){ ui.mA = null; renderMeasure(); } else { if (ui.tool !== 'select') setTool('select'); select(null); } }
   else if (k.startsWith('arrow') && ui.sel?.kind === 'furn'){
     e.preventDefault(); const st = e.shiftKey ? 100 : 10;
     mutate(() => { const f = getF(ui.sel.id); if (k==='arrowleft') f.cx -= st; if (k==='arrowright') f.cx += st; if (k==='arrowup') f.cy -= st; if (k==='arrowdown') f.cy += st; });
@@ -2601,7 +2704,7 @@ function buildArch(){
   });
   [...DOORS, ...SLIDES, ...OPENS.map(rect => ({rect}))].forEach(d => { const [x0, y0, x1, y1] = d.rect; const s = box(M(x1-x0), .012, M(y1-y0), mat('#d8d0c0', {roughness:.3}), wx((x0+x1)/2), 0, wz((y0+y1)/2)); s.castShadow = false; archFloor.add(s); });
   WALLS.forEach((w, i) => {
-    if (state.demolished.includes('w'+i)) return;
+    if (!isOrig() && state.demolished.includes('w'+i)) return;
     const own = state.wallFin?.['w'+i];
     let mats;
     if (own){   // per-face: [+x, -x, top, bottom, +z, -z]; side a = north/west (-z / -x), b = south/east (+z / +x)
@@ -2612,6 +2715,7 @@ function buildArch(){
     if (wallBox.last) wallBox.last.userData.wall = 'w'+i;
     colliders.push([wx(w[0]), wz(w[1]), wx(w[2]), wz(w[3])]);
   });
+  if (!isOrig()) NW().forEach(w => { wallBox(nwRect(w), 0, w.h ? Math.min(w.h/1000, top) : top); if (wallBox.last) wallBox.last.userData.nwall = w.id; colliders.push([wx(w.x0), wz(w.y0), wx(w.x1), wz(w.y1)]); });
   // 门洞、飘窗洞口上方过梁
   [...DOORS.map(d => [d.rect, 2.4]), ...SLIDES.map(s => [s.rect, s.h ?? (s.v ? 2.4 : 2.1)])]
     .forEach(([r, h]) => { if (top > h) wallBox(r, h, top); });
@@ -2682,7 +2786,7 @@ function buildLabels(){
 // 只重建变化的部分
 function sync(force){
   if (!inited || (!active && !force)) return;
-  const a = JSON.stringify([state.rooms, state.demolished, opt.cut, state.finishes, state.wallFin]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, opt.cut]);
+  const a = JSON.stringify([state.rooms, state.demolished, opt.cut, state.finishes, state.wallFin, state.newWalls, ui.layers.orig]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, opt.cut]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
