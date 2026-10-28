@@ -281,6 +281,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip on" data-layer="dims" data-en="Dims">尺寸</button>
       <button class="btn chip on" data-layer="labels" data-en="Rooms">房间</button>
       <button class="btn chip on" data-layer="furn" data-en="Furniture">家具</button>
+      <button class="btn chip on" data-layer="ceil" data-en="Ceiling">吊顶</button>
       <button class="btn chip" data-layer="grid" data-en="Grid">网格</button>
       <button class="btn chip" data-layer="bearing" data-en="Structure">承重墙</button>
       <button class="btn chip" data-layer="orig" title="Show the developer's original walls (hides your new walls and restores removed ones)" data-en-title="Show the developer's original walls (hides your new walls and restores removed ones)" data-en="Original">原始方案</button>
@@ -296,6 +297,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
     </div>
     <div class="grp only3d" id="toggles3d">
       <button class="btn chip on" data-t="furn" data-en="Furniture">家具</button>
+      <button class="btn chip on" data-t="ceil" data-en="Ceiling">吊顶</button>
       <button class="btn chip on" data-t="labels" data-en="Labels">房间名</button>
       <button class="btn chip" data-t="night" data-en="Night">夜景</button>
       <button class="btn chip" data-t="roof" title="Cover the top with the concrete slab (3,190)" data-en="Slab">楼板</button>
@@ -536,7 +538,7 @@ function accSVG(t,w,d){
   else { s += arrow(0, y - 40, 0, y - a) + arrow(0, y + d + 40, 0, y + d + a) + arrow(x - 40, 0, x - a, 0) + arrow(x + w + 40, 0, x + w + a, 0); }
   return s + `<text y="${kind === '4-way' ? 0 : -d*.12}" font-size="${Math.min(150, d*.32)}" text-anchor="middle" dominant-baseline="central" fill="#333" font-weight="700" pointer-events="none">${k}k ${kind === 'wall' ? 'wall' : kind}</text>`;
 }
-const showFurn = f => isEl(f) ? (ui.layers.mepNew && mepOn.has(elGroup(f.type))) : ui.layers.furn;
+const showFurn = f => f.type === 'bulkhead' ? ui.layers.ceil : isEl(f) ? (ui.layers.mepNew && mepOn.has(elGroup(f.type))) : ui.layers.furn;
 function renderMep(){
   const g = $('#gMep'); let s = '';
   const nv = 'vector-effect="non-scaling-stroke"';
@@ -796,7 +798,7 @@ const svg = $('#plan');
 /* ======================= 状态 / 历史 / 存储 ======================= */
 let state = load() || defaultState();
 const ui = {tool:'select', sel:null, mA:null, mCur:null,
-  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepPl:false, mepNew:true, orig:false}};
+  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepPl:false, mepNew:true, orig:false, ceil:true}};
 let view = {x0:0, y0:0, s:.06};
 const undoStack = [], redoStack = [];
 
@@ -1886,7 +1888,7 @@ const stage = $('#stage'), host = $('#view3d');
 const OX = 10335, OY = 6400, H = 3.11, SLAB = 3.19, H_DOOR = 2.4, FOV = 45;   // Unit C: ceiling 3,110 (cove 2,840 at the façade)       
 const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
-const opt = {cut:3.11, furn:true, labels:true, night:false, hour:10, mode:'orbit', real:!COARSE, roof:false};
+const opt = {cut:3.11, ceil:true, furn:true, labels:true, night:false, hour:10, mode:'orbit', real:!COARSE, roof:false};
 let coveN = 0, roofG = null;
 let composer = null, gtao = null;
 function makeComposer(){
@@ -1903,7 +1905,7 @@ function draw(){ if (opt.real && composer) composer.render(); else renderer.rend
 
 let inited = false, active = false, raf = 0, anim = null, fly = null;
 let renderer, labelRenderer, scene, camera, orbit, walkCtl, hemi, sun, ground, glassMat, wallMat, capMat, frameMat;
-let archFloor, archUp, furnG, labelG, lampG, colliders = [], selKey = null, selHelper = null;
+let ceilG, archFloor, archUp, furnG, labelG, lampG, colliders = [], selKey = null, selHelper = null;
 let sigArch = '', sigFurn = '', sigLabels = '', grow = 1, furnGrow = 1;
 const doors = [], keys = {};
 
@@ -1944,7 +1946,7 @@ function init(){
   wallMat = mat('#f4f1eb', {roughness:.92}); capMat = mat('#34312d', {roughness:.9}); frameMat = mat('#5d6166', {roughness:.5, metalness:.4});
 
   archFloor = new THREE.Group(); archUp = new THREE.Group(); furnG = new THREE.Group(); labelG = new THREE.Group(); lampG = new THREE.Group();
-  scene.add(archFloor, archUp, furnG, labelG, lampG);
+  ceilG = new THREE.Group(); scene.add(archFloor, archUp, furnG, ceilG, labelG, lampG);
 
   const cv = renderer.domElement; let downAt = null, look = null;
   cv.addEventListener('pointerdown', e => {
@@ -1973,7 +1975,7 @@ function init(){
     const f = getF(fdrag.id), g = dragPt(f, e.clientX, e.clientY); if (!f || !g) return;
     fdrag.moved = true; cv.style.cursor = 'grabbing';
     [f.cx, f.cy] = snapMove(f, g.x - fdrag.ox, g.y - fdrag.oy);
-    furnG.children.find(o => o.userData.fid === f.id)?.position.set(wx(f.cx), 0, wz(f.cy));   // 拖动中只挪模型，松手再整体同步
+    [...furnG.children, ...ceilG.children].find(o => o.userData.fid === f.id)?.position.set(wx(f.cx), 0, wz(f.cy));   // 拖动中只挪模型，松手再整体同步
   });
   const endF = e => {
     if (!fdrag || e.pointerId !== fdrag.pid) return;
@@ -2826,7 +2828,9 @@ function buildArch(){
 
 function buildFurn(){
   clearGroup(furnG); coveN = 0;
-  state.furniture.filter(f => !f.type.startsWith('el_')).forEach(f => furnG.add(buildFurniture(f)));
+  clearGroup(ceilG);
+  state.furniture.filter(f => !f.type.startsWith('el_')).forEach(f => (f.type === 'bulkhead' ? ceilG : furnG).add(buildFurniture(f)));
+  ceilG.visible = opt.ceil;
   furnG.visible = opt.furn; selKey = null; applyGrow(); applyLight();
 }
 
@@ -2853,7 +2857,7 @@ function sync(force){
   const a = JSON.stringify([state.rooms, state.demolished, opt.cut, state.finishes, state.wallFin, state.newWalls, ui.layers.orig]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, opt.cut]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
-  furnG.children.forEach(o => { if (o.userData.ceil) o.visible = opt.cut > o.userData.ceil; });
+  ceilG.children.forEach(o => { if (o.userData.ceil) o.visible = opt.cut > o.userData.ceil; });
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
 }
 
@@ -2875,7 +2879,7 @@ function applyLight(){
   hemi.intensity = opt.night ? .12 : 1.1;
   scene.background = new THREE.Color(opt.night ? 0x1c2130 : 0xf7f4ee);
   ground.material.color.set(opt.night ? 0x2a2e38 : 0xf2eee7);
-  furnG?.traverse(o => { if (o.userData?.cove) o.intensity = opt.night ? 1.6 : .35; });
+  ceilG?.traverse(o => { if (o.userData?.cove) o.intensity = opt.night ? 1.6 : .35; });
   lampG.children.forEach(o => { if (o.isPointLight) o.intensity = opt.night ? 6 : 0; else o.material.emissiveIntensity = opt.night ? 2 : .3; });
   renderer.toneMappingExposure = opt.night ? 1.25 : 1.05;
   envK = opt.night ? .15 : 1; matCache.forEach(m => { if (m.envMap) m.envMapIntensity = m.userData.env*envK; });
@@ -2966,7 +2970,7 @@ function pick(e){
   if (!e) ptr.set(0, 0);
   else { const r = renderer.domElement.getBoundingClientRect(); ptr.set((e.clientX - r.left)/r.width*2 - 1, -(e.clientY - r.top)/r.height*2 + 1); }
   ray.setFromCamera(ptr, camera);
-  const hits = ray.intersectObjects([...(opt.furn ? [furnG] : []), archUp, archFloor], true);
+  const hits = ray.intersectObjects([...(opt.furn ? [furnG] : []), ...(opt.ceil ? [ceilG] : []), archUp, archFloor], true);
   for (const h of hits){
     let o = h.object;
     if (o.material === glassMat || !o.isMesh) continue;
@@ -3008,7 +3012,7 @@ function updateSel(){
   if (key !== selKey){
     selKey = key;
     if (selHelper){ scene.remove(selHelper); selHelper.geometry.dispose(); selHelper = null; }
-    const g = key && (ui.sel.kind === 'wall' || ui.sel.kind === 'nwall' ? archUp.children.find(o => o.userData.wall === ui.sel.id) : furnG.children.find(g => g.userData.fid === ui.sel.id));
+    const g = key && (ui.sel.kind === 'wall' || ui.sel.kind === 'nwall' ? archUp.children.find(o => o.userData.wall === ui.sel.id) : [...furnG.children, ...ceilG.children].find(g => g.userData.fid === ui.sel.id));
     if (g){ selHelper = new THREE.BoxHelper(g, 0xb5653a); scene.add(selHelper); }
   }
   if (selHelper) selHelper.update();
@@ -3126,6 +3130,7 @@ function bindUI(){
   document.querySelectorAll('[data-cut]').forEach(b => b.onclick = () => { if (opt.mode === 'walk') return; opt.cut = +b.dataset.cut; syncCutBtns(); sync(); });
   document.querySelectorAll('#toggles3d .btn').forEach(b => b.onclick = () => {
     const k = b.dataset.t; opt[k] = !opt[k]; b.classList.toggle('on', opt[k]);
+    if (k === 'ceil'){ ceilG.visible = opt.ceil; if (!opt.ceil && getF(ui.sel?.id)?.type === 'bulkhead') window.select(null); }
     if (k === 'furn'){ furnG.visible = opt.furn; if (!opt.furn && ui.sel?.kind === 'furn') window.select(null); }
     if (k === 'labels') showLabels(opt.labels && opt.mode === 'orbit' && !anim);
     if (k === 'night') applyLight();
