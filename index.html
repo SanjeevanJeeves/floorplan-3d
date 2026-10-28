@@ -32,6 +32,12 @@ header{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 1
 .btn:hover{background:#f2ece2}
 .btn.on{background:var(--ink);color:#fff}
 .btn.chip.on{background:var(--accent-soft);color:var(--accent)}
+.mepmenu{position:relative}#mepPop[hidden]{display:none!important}
+#mepPop.menu-pop{position:fixed;z-index:60;right:auto;min-width:260px;padding:8px 10px;gap:4px}
+.mep-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0;cursor:pointer}.mep-row i{width:12px;height:12px;border-radius:50%;flex:none}
+.mep-row small{margin-left:auto;color:#8a837c;font-size:11px}.mbtn{border:1px solid #ddd;background:#faf7f2;border-radius:6px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.mep-note{font-size:11px;color:#8a837c;line-height:1.35;margin-top:4px;max-width:250px}
+
 #langSel .btn{min-width:32px;font-weight:500}
 .btn.primary{background:var(--accent);color:#fff}
 .btn.primary:hover{background:#9f5530}
@@ -275,6 +281,9 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip on" data-layer="furn" data-en="Furniture">家具</button>
       <button class="btn chip" data-layer="grid" data-en="Grid">网格</button>
       <button class="btn chip" data-layer="bearing" data-en="Bearing walls">承重墙</button>
+      <button class="btn chip" data-layer="mepEx" data-en="Existing MEP">现有机电</button>
+      <button class="btn chip on" data-layer="mepNew" data-en="New points">新点位</button>
+      <details class="menu mepmenu"><summary class="btn chip" data-en="Point types ▾">点位类型 ▾</summary><div class="menu-pop mep-pop" id="mepPop"></div></details>
       <button class="btn chip on" data-layer="wallSnap" title="拖动家具时贴墙吸附" data-en-title="Snap furniture to walls while dragging" data-en="Wall snap">贴墙吸附</button>
     </div>
     <div class="grp only3d">
@@ -320,6 +329,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <g id="gFurn"></g>
       <g id="gWalls"></g>
       <g id="gOpen"></g>
+      <g id="gMep"></g>
       <g id="gLabels" pointer-events="none"></g>
       <g id="gDims" pointer-events="none"></g>
       <g id="gMeasure" pointer-events="none"></g>
@@ -406,6 +416,9 @@ const SLIDES = [{"rect": [1100, 11379, 4100, 11579], "v": false, "h": 2.65, "mar
 const OPENS = [[7945, 7482, 12430, 7582], [7785, 3654, 8680, 3904], [7180, 7545, 7780, 7697], [5925, 7497, 6845, 7697], [15435, 9450, 15540, 11380]];
 const R = (x0,y0,x1,y1) => [[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
 const ROOMS = [{"id": "entrance", "name": "Entrance", "poly": [[300, 3854], [1960, 3854], [1960, 915], [300, 915]], "mat": "tile800", "at": [1130, 2384]}, {"id": "living", "name": "Living + Dining + Work", "poly": [[300, 3854], [6520, 3854], [6520, 7497], [4880, 7497], [4880, 11379], [300, 11379]], "mat": "tile800", "at": [2590, 9438]}, {"id": "kitchen", "name": "Kitchen", "poly": [[4880, 8497], [5080, 8497], [5080, 7697], [7945, 7697], [7945, 7582], [9720, 7582], [9720, 9813], [9210, 9813], [9210, 10413], [9720, 10413], [9720, 11379], [4880, 11379]], "mat": "tile600", "at": [7300, 9155]}, {"id": "passage", "name": "Passage", "poly": [[6520, 6325], [14760, 6325], [14760, 7482], [7945, 7482], [7945, 7497], [6520, 7497]], "mat": "tile800", "at": [10640, 6934]}, {"id": "toilet1", "name": "Toilet 01", "poly": [[6720, 6295], [9465, 6295], [9465, 3854], [6720, 3854]], "mat": "tile600", "at": [8090, 5076]}, {"id": "mtoilet", "name": "Master Toilet", "poly": [[9680, 6118], [12625, 6118], [12625, 3884], [10615, 3884], [10615, 4504], [9680, 4504]], "mat": "antislip", "at": [11152, 5311]}, {"id": "master", "name": "Master Bedroom", "poly": [[12840, 3854], [19220, 3854], [19220, 11379], [15540, 11379], [15540, 9452], [15575, 9452], [15575, 8437], [14880, 8437], [14880, 6120], [12840, 6120]], "mat": "wood", "at": [17050, 7412]}, {"id": "bed2", "name": "Bedroom 02 + Guest + Gym", "poly": [[9920, 7582], [13430, 7582], [13430, 11379], [9870, 11379], [9870, 8497], [9920, 8497]], "mat": "wood", "at": [11650, 9938]}, {"id": "toilet2", "name": "Toilet 02", "poly": [[13630, 7582], [14760, 7582], [14760, 8452], [14590, 8452], [14590, 8602], [15375, 8602], [15375, 11379], [13630, 11379]], "mat": "antislip", "at": [14502, 9990]}, {"id": "balc_n", "name": "Balcony (north)", "poly": [[2160, 3654], [10565, 3654], [10565, 2454], [2160, 2454]], "mat": "walnut", "at": [5905, 3054], "counted": false, "balc": true}, {"id": "balc_s1", "name": "Balcony (living)", "poly": [[50, 11579], [4880, 11579], [4880, 12729], [50, 12729]], "mat": "walnut", "at": [2465, 12154], "counted": false, "balc": true}, {"id": "balc_dry", "name": "Drying Balcony", "poly": [[4880, 11579], [8755, 11579], [8755, 12729], [4880, 12729]], "mat": "antislip", "at": [6818, 12154], "counted": false, "balc": true}, {"id": "balc_s2", "name": "Balcony (bedroom 02)", "poly": [[8755, 11579], [13810, 11579], [13810, 12729], [8755, 12729]], "mat": "walnut", "at": [11282, 12154], "counted": false, "balc": true}, {"id": "balc_s3", "name": "Balcony (master)", "poly": [[13810, 11579], [20570, 11579], [20570, 12729], [13810, 12729]], "mat": "walnut", "at": [17190, 12154], "counted": false, "balc": true}, {"id": "balc_e", "name": "Balcony (east)", "poly": [[19420, 11579], [20570, 11579], [20570, 3754], [19420, 3754]], "mat": "walnut", "counted": false, "balc": true}];
+// Existing electrical wall points (switch & socket shop drawing R4, original layout, ±200) and HVAC units (HVAC_L31-Unit_C)
+const MEP_EXIST = [{"id": "E01", "c": "C1", "t": "sw", "k": "S", "x": 2500, "y": 3944, "st": "keep", "lb": "R + S + S lighting switches @1300", "nt": "North wall, pier west of DW1 (dining/work end)."}, {"id": "E02", "c": "C1", "t": "s13", "k": "G", "x": 2440, "y": 3944, "st": "keep", "lb": "Socket @350", "nt": "Useful for the work set-up; add more there (N1)."}, {"id": "E03", "c": "C5", "t": "sw", "k": "S", "x": 4450, "y": 11289, "st": "check", "lb": "Switch @1300", "nt": "South wall, on the pier between DW1 and the kitchen; bar/kitchen lights may want to come here as 2-way."}, {"id": "E04", "c": "C5", "t": "s13", "k": "G", "x": 800, "y": 11289, "st": "keep", "lb": "Socket @350", "nt": "South-west pier."}, {"id": "E05", "c": "C6", "t": "data", "k": "TV", "x": 390, "y": 9480, "st": "keep", "lb": "TV + TV-ELV @1150, socket @350", "nt": "West wall TV point \u2014 matches a TV on the west wall; confirm the TV height for the sofa layout."}, {"id": "E06", "c": "C6", "t": "data", "k": "T", "x": 390, "y": 7660, "st": "check", "lb": "Telephone @600", "nt": "West wall. Keep only if a landline is wanted; otherwise convert to data (Cat6)."}, {"id": "E07", "c": "C8", "t": "sw", "k": "S", "x": 4790, "y": 7900, "st": "keep", "lb": "S + S + R switches @1300", "nt": "On the concrete pier (living side) \u2014 the pier stays. Bar pendants can be added to this plate."}, {"id": "E08", "c": "C8", "t": "s13", "k": "G", "x": 4790, "y": 8770, "st": "remove", "lb": "Socket @350", "nt": "Living/pantry wall is demolished."}, {"id": "E09", "c": "C8", "t": "s13", "k": "G", "x": 4790, "y": 10590, "st": "remove", "lb": "Socket @350", "nt": "Living/pantry wall is demolished. Replace with sockets in the bar (N2)."}, {"id": "E10", "c": "C28", "t": "sw", "k": "S", "x": 1870, "y": 2800, "st": "check", "lb": "2 switches @1300", "nt": "Entrance east wall, ~1.9 m in from the door. D1a is now 1,400 + fixed panel \u2014 check the switches still sit where you reach them on entering."}, {"id": "E11", "c": "C11", "t": "s15", "k": "OVN", "x": 5170, "y": 11055, "st": "remove", "lb": "Oven + MW @1440", "nt": "Wall demolished. Ovens move to the north tall run (N5)."}, {"id": "E12", "c": "C11", "t": "s13", "k": "G", "x": 5170, "y": 8950, "st": "remove", "lb": "Worktop sockets P5 @1005", "nt": "Wall demolished."}, {"id": "E13", "c": "C11", "t": "s13", "k": "DW", "x": 5170, "y": 9650, "st": "remove", "lb": "DW + under-sink geyser", "nt": "Wall demolished. DW + geyser move to the south run (N7)."}, {"id": "E14", "c": "C11", "t": "light", "k": "LED", "x": 5170, "y": 9220, "st": "remove", "lb": "Cabinet LED point", "nt": "Wall demolished."}, {"id": "E15", "c": "C10", "t": "s13", "k": "FR", "x": 8035, "y": 8920, "st": "move", "lb": "Fridge @1100", "nt": "Wall demolished. Fridge goes ~0.6 m north-east onto the north wall (N4)."}, {"id": "E16", "c": "C10", "t": "s15", "k": "HOB", "x": 8035, "y": 10760, "st": "remove", "lb": "Hob ignition PP12 @700 + sockets P5 @1190", "nt": "Wall demolished. Hob moves to the east wall (N6)."}, {"id": "E17", "c": "C10", "t": "fan", "k": "HOOD", "x": 7855, "y": 10390, "st": "remove", "lb": "Hood socket (high level)", "nt": "Wall demolished."}, {"id": "E18", "c": "C10", "t": "light", "k": "LED", "x": 7855, "y": 9830, "st": "remove", "lb": "Cabinet LED point @2105", "nt": "Wall demolished."}, {"id": "E19", "c": "C23", "t": "db", "k": "DB", "x": 7480, "y": 7787, "st": "keep", "lb": "DB + switch by the north door", "nt": "Stays. Keep the DB face clear of joinery (access panel)."}, {"id": "E20", "c": "C20", "t": "data", "k": "FTTH", "x": 8035, "y": 9230, "st": "move", "lb": "FTTH fibre box @2750", "nt": "On the demolished pantry / S.R wall. Must be relocated \u2014 the internet comes in here (N12)."}, {"id": "E21", "c": "C20", "t": "data", "k": "TV", "x": 7855, "y": 8900, "st": "remove", "lb": "Socket + TV-ELV @1150, socket @350, switch", "nt": "Old helper-room points; wall demolished."}, {"id": "E22", "c": "C21", "t": "sw", "k": "S", "x": 8800, "y": 9610, "st": "remove", "lb": "Switch @1300", "nt": "S.R / S.T wall demolished."}, {"id": "E23", "c": "C22", "t": "fan", "k": "FAN", "x": 9630, "y": 8660, "st": "reuse", "lb": "Fan point @~2400", "nt": "Kitchen east wall stays and this lands at the hob \u2014 reuse for the hood (N6)."}, {"id": "E24", "c": "C25", "t": "sw", "k": "S", "x": 7600, "y": 6402, "st": "move", "lb": "Switch + geyser DP switch by the old toilet-01 door", "nt": "New S.R door D3 (6.84\u20137.69 m) now sits here \u2014 move both; the geyser DP now serves the new S.T."}, {"id": "E25", "c": "C25", "t": "s13", "k": "G", "x": 8805, "y": 6402, "st": "keep", "lb": "Socket @350", "nt": "Passage, outside S.T."}, {"id": "E26", "c": "C25", "t": "sw", "k": "BELL", "x": 11570, "y": 6402, "st": "check", "lb": "Door bell", "nt": "Bell sounder in the passage \u2014 fine, or move nearer the entrance/living."}, {"id": "E27", "c": "C25", "t": "sw", "k": "S", "x": 12290, "y": 6402, "st": "keep", "lb": "Switch @1300", "nt": "Passage east end."}, {"id": "E28", "c": "C17A", "t": "sw", "k": "S", "x": 12230, "y": 7672, "st": "keep", "lb": "Switch @1300 by door", "nt": "Same door (D2)."}, {"id": "E29", "c": "C18", "t": "s13", "k": "G2", "x": 9960, "y": 10790, "st": "keep", "lb": "Bedside S1 + G2 @600", "nt": "Bed head on the west wall. Back-to-back with the new hob wall on the kitchen side."}, {"id": "E30", "c": "C18", "t": "s13", "k": "G2", "x": 9960, "y": 8790, "st": "keep", "lb": "Bedside G2 + R @600", "nt": ""}, {"id": "E31", "c": "C3", "t": "data", "k": "TV", "x": 13340, "y": 9600, "st": "keep", "lb": "TV + TV-ELV @1150, sockets @350", "nt": "East wall (toilet 02 side)."}, {"id": "E32", "c": "C7", "t": "ac", "k": "AC", "x": 11300, "y": 11289, "st": "move", "lb": "AC point @2800 + switch", "nt": "Old AC point is over the DW2 slider; the developer now shows the 12k unit at the west end of this wall (9.9\u201310.9 m). Move the point to suit."}, {"id": "E33", "c": "C2", "t": "s13", "k": "G2", "x": 15950, "y": 3944, "st": "reuse", "lb": "Old bedside S1+G2 / G2+R @600", "nt": "Behind the new north wardrobe run \u2014 reuse for closet lighting / a socket inside the wardrobe, or blank off."}, {"id": "E34", "c": "C2", "t": "s13", "k": "G2", "x": 17980, "y": 3944, "st": "reuse", "lb": "Old bedside", "nt": "As E33."}, {"id": "E35", "c": "C12", "t": "ac", "k": "AC", "x": 18700, "y": 7390, "st": "remove", "lb": "AC @2800, TV @1150, 2 sockets", "nt": "Old master / bedroom-02 partition is demolished."}, {"id": "E36", "c": "C16", "t": "ac", "k": "AC", "x": 17800, "y": 7690, "st": "remove", "lb": "AC @2800, TV @1150, socket, switch", "nt": "Same demolished partition (bedroom-02 face)."}, {"id": "E37", "c": "C17", "t": "sw", "k": "S", "x": 13950, "y": 7672, "st": "check", "lb": "Switch + geyser DP @1300 by the toilet-02 door", "nt": "Toilet 02 stays \u2014 keep these, check they sit at the latch side of its D3 in the 15.10 plan."}, {"id": "E38", "c": "C14", "t": "sw", "k": "S", "x": 12930, "y": 5600, "st": "check", "lb": "2 switches + geyser DP @1300 (master side)", "nt": "Master-toilet east wall, between the old master door and the toilet door. Wall largely stays; re-set beside the new master-toilet D3 and keep the geyser DP."}, {"id": "E39", "c": "C9", "t": "sw", "k": "S", "x": 19130, "y": 4360, "st": "keep", "lb": "Switch @1344 + socket @350", "nt": "East wall, north pier \u2014 now inside the closet zone; check against the north wardrobe end."}, {"id": "E40", "c": "C9", "t": "s13", "k": "G", "x": 19130, "y": 7980, "st": "keep", "lb": "Socket @350", "nt": "Centre pier between the DW2 sliders = TV wall in Option 1. Add TV + data here (N9)."}, {"id": "E41", "c": "C9", "t": "sw", "k": "S", "x": 19130, "y": 10660, "st": "keep", "lb": "Switch @1344", "nt": "South pier."}, {"id": "E42", "c": "C4", "t": "s13", "k": "G2", "x": 18720, "y": 11289, "st": "keep", "lb": "Bedside S1 + G2 @600", "nt": "Old bedroom-02 bed wall = master Option 1 bed wall. East bedside lands at the nightstand."}, {"id": "E43", "c": "C4", "t": "s13", "k": "G2", "x": 16680, "y": 11289, "st": "move", "lb": "Bedside G2 + R @600", "nt": "Falls ~180 mm inside the Option 1 bed head \u2014 move ~500 mm west to x \u2248 16.2 m (or shift the bed east 300)."}, {"id": "E44", "c": "C10", "t": "sw", "k": "S", "x": 7855, "y": 11234, "st": "remove", "lb": "Appliance DP + control switch @1100", "nt": "Isolators at the south end of the demolished pantry wall \u2014 re-provide for hob/oven in the new kitchen (R12)."}];
+const MEP_UNITS = [{"id": "AC1", "lb": "Living 42k 4-way cassette (ceiling)", "r": [348, 4484, 1862, 6000], "odu": false}, {"id": "AC2", "lb": "Wall split 18k (old bedroom 01)", "r": [18209, 7627, 19209, 7929], "odu": false}, {"id": "AC3", "lb": "Wall split 12k (bedroom 02)", "r": [9882, 11056, 10882, 11357], "odu": false}, {"id": "AC4", "lb": "Ducted 22k (master, ceiling)", "r": [17370, 6840, 18830, 7370], "odu": false}, {"id": "ODU1", "lb": "Outdoor unit 22k", "r": [19428, 6607, 19809, 7462], "odu": true}, {"id": "ODU2", "lb": "Outdoor unit 18k", "r": [19428, 7545, 19809, 8400], "odu": true}, {"id": "ODU3", "lb": "Outdoor unit 12k", "r": [9187, 11590, 10043, 11972], "odu": true}, {"id": "ODU4", "lb": "Outdoor unit 42k", "r": [10168, 2728, 10550, 3583], "odu": true}];
 const UNITC_DIMS = [{"v": 2125, "a": [-234, 915], "b": [-234, 3039]}, {"v": 4550, "a": [315, 8336], "b": [4865, 8336]}, {"v": 2815, "a": [4965, 11789], "b": [7780, 11789]}, {"v": 3530, "a": [9885, 11789], "b": [13415, 11789]}, {"v": 1685, "a": [13660, 11789], "b": [15345, 11789]}, {"v": 3680, "a": [15540, 11789], "b": [19220, 11789]}, {"v": 1200, "a": [19420, 4110], "b": [20620, 4110]}, {"v": 2852, "a": [4454, 11364], "b": [4454, 8512]}, {"v": 6400, "a": [19205, 3362], "b": [12805, 3362]}, {"v": 1490, "a": [9470, 3362], "b": [7980, 3362]}, {"v": 10450, "a": [542, 915], "b": [542, 11364]}, {"v": 7495, "a": [18443, 3869], "b": [18443, 11364]}, {"v": 4345, "a": [2160, 3362], "b": [6505, 3362]}, {"v": 1170, "a": [9501, 6312], "b": [9501, 7482]}, {"v": 650, "a": [10461, 3854], "b": [10461, 4504]}, {"v": 900, "a": [9665, 4445], "b": [10565, 4445]}, {"v": 832, "a": [15342, 10547], "b": [15342, 11379]}, {"v": 2234, "a": [13265, 3884], "b": [13265, 6118]}, {"v": 2945, "a": [9680, 5656], "b": [12625, 5656]}, {"v": 1200, "a": [2480, 2454], "b": [2480, 3654]}, {"v": 1630, "a": [315, 2593], "b": [1945, 2593]}, {"v": 1050, "a": [6735, 3362], "b": [7785, 3362]}, {"v": 4609, "a": [5095, 8336], "b": [9705, 8336]}, {"v": 1030, "a": [4454, 8512], "b": [4454, 7482]}, {"v": 3782, "a": [10159, 7582], "b": [10159, 11364]}, {"v": 2927, "a": [15883, 8437], "b": [15883, 11364]}, {"v": 710, "a": [15590, 8164], "b": [14880, 8164]}, {"v": 1130, "a": [15079, 7307], "b": [15079, 8437]}, {"v": 2025, "a": [12855, 5905], "b": [14880, 5905]}, {"v": 1550, "a": [5610, 11095], "b": [7160, 11095]}];
 const MATS = {
   wood:    {name:'橡木地板', price:320, sw:'#d8b88a'},
@@ -447,6 +460,55 @@ const LIB = [
     ['desk','长书桌',1600,700,'#d8c2a2'],['officechair','办公椅',620,620,'#4a4f55'],['bookshelf','大书架',1600,350,'#e2cfb4'],
     ['piano','立式钢琴',1500,600,'#1f1d1b'],['treadmill','跑步机',800,1800,'#3a3a3c'],['armchair','阅读椅',750,800,'#c9a98a']]},
 ];
+
+// ===== Electrical / AC points (Unit C) =====
+const MEP_TYPES = [['sw','Switches','#2e7d32'],['s13','13A sockets','#1565c0'],['s15','15A / power / DP','#6a1b9a'],['ac','AC','#ef6c00'],
+  ['fan','Fans / exhaust','#00838f'],['light','Lights','#c79100'],['data','TV / data / phone','#6d4c41'],['db','DB','#455a64']];
+const MEP_COL = Object.fromEntries(MEP_TYPES.map(t => [t[0], t[2]]));
+const MEP_TAG = {sw:'S', s13:'13A', s15:'15A', ac:'AC', fan:'F', light:'L', data:'TV', db:'DB'};
+const EL_TYPE = {el_sw:'sw', el_sw2:'sw', el_13a:'s13', el_15a:'s15', el_iso:'s15', el_ac:'ac', el_fan:'fan', el_light:'light', el_data:'data'};
+const EL_TAG = {el_sw:'S', el_sw2:'S2', el_13a:'13A', el_15a:'15A', el_iso:'DP', el_ac:'AC', el_fan:'F', el_light:'L', el_data:'TV'};
+const mepOn = new Set(MEP_TYPES.map(t => t[0]));
+LIB.push({cat:'Electrical & AC', items:[
+  ['el_sw','Switch',300,300,'#2e7d32'], ['el_sw2','2-gang switch',300,300,'#2e7d32'], ['el_13a','13A socket',300,300,'#1565c0'],
+  ['el_15a','15A power point',300,300,'#6a1b9a'], ['el_iso','DP isolator',300,300,'#6a1b9a'], ['el_ac','AC point',300,300,'#ef6c00'],
+  ['el_fan','Fan point',300,300,'#00838f'], ['el_light','Light point',300,300,'#c79100'], ['el_data','TV / data',300,300,'#6d4c41']]});
+function elSVG(t,w,d,c){
+  const r = Math.min(w,d)/2, tag = EL_TAG[t] || '?';
+  return `<circle r="${r}" fill="${c}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/>` +
+    `<text font-size="${r*(tag.length > 2 ? .78 : 1.05)}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-weight="700" pointer-events="none">${tag}</text>`;
+}
+const isEl = f => f.type.startsWith('el_');
+const showFurn = f => isEl(f) ? (ui.layers.mepNew && mepOn.has(EL_TYPE[f.type])) : ui.layers.furn;
+function renderMep(){
+  const g = $('#gMep');
+  if (!ui.layers.mepEx){ g.innerHTML = ''; return; }
+  let s = '';
+  if (mepOn.has('ac')) MEP_UNITS.forEach(u => {
+    const [a,b,c,d] = u.r, col = MEP_COL.ac;
+    s += `<g><title>${esc(u.id + ' · ' + u.lb + ' (existing, HVAC drawing)')}</title><rect x="${a}" y="${b}" width="${c-a}" height="${d-b}" fill="${u.odu ? '#fff3e0' : 'none'}" fill-opacity=".8" stroke="${col}" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>` +
+         `<text x="${(a+c)/2}" y="${(b+d)/2}" font-size="120" text-anchor="middle" dominant-baseline="central" fill="${col}" font-weight="700">${u.id}</text></g>`;
+  });
+  MEP_EXIST.forEach(p => {
+    if (!mepOn.has(p.t)) return;
+    const c = MEP_COL[p.t], tag = MEP_TAG[p.t];
+    s += `<g transform="translate(${p.x} ${p.y})"><title>${esc(`${p.id} (${p.c}) · ${p.lb} · ${p.st.toUpperCase()}${p.nt ? ' — ' + p.nt : ''}`)}</title>` +
+      `<rect x="-115" y="-115" width="230" height="230" transform="rotate(45)" fill="#fff" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke"/>` +
+      `<text font-size="${tag.length > 2 ? 85 : 110}" text-anchor="middle" dominant-baseline="central" fill="${c}" font-weight="700">${tag}</text>` +
+      (p.st === 'remove' ? `<path d="M-150 -150L150 150M150 -150L-150 150" stroke="#c62828" stroke-width="2" vector-effect="non-scaling-stroke"/>` : '') +
+      `<text y="245" font-size="85" text-anchor="middle" fill="${c}">${p.id}</text></g>`;
+  });
+  g.innerHTML = s;
+}
+function buildMepPop(){
+  const nEx = t => MEP_EXIST.filter(p => p.t === t).length + (t === 'ac' ? MEP_UNITS.length : 0);
+  const nNew = t => state.furniture.filter(f => isEl(f) && EL_TYPE[f.type] === t).length;
+  $('#mepPop').innerHTML = `<div class="mep-row"><button class="mbtn" data-mall="1">Show all</button><button class="mbtn" data-mall="0">Hide all</button></div>` +
+    MEP_TYPES.map(([k,n,c]) => `<label class="mep-row"><input type="checkbox" data-mt="${k}" ${mepOn.has(k) ? 'checked' : ''}><i style="background:${c}"></i>${n}<small>${nEx(k)} existing · ${nNew(k)} new</small></label>`).join('') +
+    `<div class="mep-note">◇ existing (shop drawings, original layout, ±200) · ✕ = on a removed wall · ● new points from the library. Hover an existing point for its details.</div>`;
+  $('#mepPop').querySelectorAll('[data-mt]').forEach(cb => cb.onchange = () => { cb.checked ? mepOn.add(cb.dataset.mt) : mepOn.delete(cb.dataset.mt); renderAll(); });
+  $('#mepPop').querySelectorAll('[data-mall]').forEach(b => b.onclick = () => { MEP_TYPES.forEach(t => b.dataset.mall === '1' ? mepOn.add(t[0]) : mepOn.delete(t[0])); buildMepPop(); renderAll(); });
+}
 const typeColor = t => { for (const c of LIB) for (const i of c.items) if (i[0]===t) return i[4]; return '#eee'; };
 
 let _n = 1;
@@ -516,7 +578,7 @@ const svg = $('#plan');
 /* ======================= 状态 / 历史 / 存储 ======================= */
 let state = load() || defaultState();
 const ui = {tool:'select', sel:null, mA:null, mCur:null,
-  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true}};
+  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepNew:true}};
 let view = {x0:0, y0:0, s:.06};
 const undoStack = [], redoStack = [];
 
@@ -574,6 +636,7 @@ const pa = (d,f='none',ex='') => `<path d="${d}" fill="${f}" ${ST} ${ex}/>`;
 const DASH = 'stroke-dasharray="4 3"';
 
 function furnSVG(t,w,d,c){
+  if (t.startsWith('el_')) return elSVG(t,w,d,c);
   const x = -w/2, y = -d/2, m = Math.min(w,d);
   switch (t){
     case 'bed': {
@@ -686,8 +749,8 @@ function renderRooms(){
 
 function renderFurn(){
   const g = $('#gFurn');
-  g.setAttribute('display', ui.layers.furn ? 'inline' : 'none');
-  g.innerHTML = state.furniture.map(f => {
+  g.setAttribute('display', 'inline');
+  g.innerHTML = state.furniture.filter(showFurn).map(f => {
     const fs = Math.max(80, Math.min(170, Math.min(f.w,f.d)*.2));
     const label = Math.min(f.w,f.d) >= 380 && !NOLABEL.includes(f.type)
       ? `<text transform="rotate(${-f.rot})" font-size="${fs}" text-anchor="middle" dominant-baseline="central" fill="#4a443c" opacity=".8" pointer-events="none">${esc(nm(f.name))}</text>` : '';
@@ -825,7 +888,7 @@ function renderSel(){
 }
 
 function renderAll(){
-  renderGrid(); renderRooms(); renderFurn(); renderWalls(); renderLabels(); renderMeasure(); renderSel(); renderPanel(); updateHeader();
+  renderGrid(); renderRooms(); renderFurn(); renderWalls(); renderMep(); renderLabels(); renderMeasure(); renderSel(); renderPanel(); updateHeader();
   window.View3D?.sync();
 }
 
@@ -1193,7 +1256,7 @@ function endDrag(cancel){
 
 svg.addEventListener('pointerdown', e => {
   if (e.button === 1 || e.button === 2) return;
-  closeDrawers(); $('details.menu').open = false;
+  closeDrawers(); document.querySelectorAll('details.menu').forEach(d => d.open = false);
   if (e.pointerType !== 'mouse'){
     touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
     svg.setPointerCapture(e.pointerId);
@@ -1438,7 +1501,9 @@ document.querySelectorAll('.menu-pop .btn').forEach(b => b.addEventListener('cli
 document.querySelectorAll('#viewSeg .btn').forEach(b => b.onclick = () => setView(b.dataset.view));
 
 document.querySelectorAll('#tools .btn').forEach(b => b.onclick = () => setTool(b.dataset.tool));
-document.querySelectorAll('#layers .btn').forEach(b => b.onclick = () => {
+document.body.appendChild($('#mepPop')); $('#mepPop').hidden = true;
+$('.mepmenu').addEventListener('toggle', e => { $('#mepPop').hidden = !e.target.open; if (!e.target.open) return; buildMepPop(); const r = e.target.querySelector('summary').getBoundingClientRect(), pp = $('#mepPop'); pp.style.top = (r.bottom + 6) + 'px'; pp.style.left = Math.max(8, Math.min(r.left, innerWidth - 290)) + 'px'; });
+document.querySelectorAll('#layers .btn.chip[data-layer]').forEach(b => b.onclick = () => {
   const k = b.dataset.layer; ui.layers[k] = !ui.layers[k]; b.classList.toggle('on', ui.layers[k]);
   if (k === 'dims') $('#gDims').setAttribute('display', ui.layers.dims ? 'inline' : 'none');
   else if (k !== 'wallSnap') renderAll();
@@ -1474,7 +1539,7 @@ if (navigator.standalone || matchMedia('(display-mode: standalone)').matches) $(
 $('#tgLib').onclick = () => drawer('lib');
 $('#tgPanel').onclick = () => drawer('panel');
 // 触屏上点菜单以外的地方收起「文件」菜单
-document.addEventListener('pointerdown', e => { const m = $('details.menu'); if (m.open && !m.contains(e.target)) m.open = false; });
+document.addEventListener('pointerdown', e => document.querySelectorAll('details.menu').forEach(m => { if (m.open && !m.contains(e.target) && !$('#mepPop').contains(e.target)) m.open = false; }));
 matchMedia('(max-width:1100px)').addEventListener('change', () => drawer(null));
 drawer(null);                                  // 恢复上次的面板收起状态
 $('#exportPng').onclick = exportPNG;
@@ -2422,7 +2487,7 @@ function buildArch(){
 
 function buildFurn(){
   clearGroup(furnG);
-  state.furniture.forEach(f => furnG.add(buildFurniture(f)));
+  state.furniture.filter(f => !isEl(f)).forEach(f => furnG.add(buildFurniture(f)));
   furnG.visible = opt.furn; selKey = null; applyGrow();
 }
 
