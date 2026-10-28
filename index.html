@@ -718,7 +718,7 @@ function bindNwPanel(id){
 }
 function wallRows(){
   const rows = [];
-  state.demolished.forEach(id => { const w = WALLS[+id.slice(1)]; if (!w) return; const L = Math.max(w[2]-w[0], w[3]-w[1]), T = Math.min(w[2]-w[0], w[3]-w[1]);
+  state.demolished.forEach(id => { const w = WALLS[+id.slice(1)]; if (!w || w[2] <= w[0]) return; const L = Math.max(w[2]-w[0], w[3]-w[1]), T = Math.min(w[2]-w[0], w[3]-w[1]);
     rows.push([id.toUpperCase(), 'WALL REMOVED', 'Wall', `${L} long × ${T} thick (${w[4] === 'e' ? 'exterior/panel' : 'partition'})`, 'full height', roomAt((w[0]+w[2])/2, (w[1]+w[3])/2), Math.round((w[0]+w[2])/2), Math.round((w[1]+w[3])/2), '', '']); });
   NW().forEach((w, i) => rows.push([`NW${String(i+1).padStart(2,'0')}`, 'NEW WALL', 'Wall', `${nwLen(w)} long × ${nwT(w)} thick`, w.h ? w.h + ' mm' : 'full height', roomAt((w.x0+w.x1)/2, (w.y0+w.y1)/2), Math.round((w.x0+w.x1)/2), Math.round((w.y0+w.y1)/2), '', w.note || '']));
   return rows;
@@ -776,7 +776,7 @@ function load(){
 function fixState(s){
   const d = defaultState();
   s.rooms = Object.assign(d.rooms, s.rooms || {});
-  s.demolished = s.demolished || []; s.newWalls = Array.isArray(s.newWalls) ? s.newWalls : []; s.measures = s.measures || []; s.finishes = fixFinishes(s.finishes); s.wallFin = s.wallFin && typeof s.wallFin === 'object' ? s.wallFin : {};
+  s.demolished = (s.demolished || []).filter(id => { const w = WALLS[+id.slice(1)]; return w && w[2] > w[0]; }); s.newWalls = Array.isArray(s.newWalls) ? s.newWalls : []; s.measures = s.measures || []; s.finishes = fixFinishes(s.finishes); s.wallFin = s.wallFin && typeof s.wallFin === 'object' ? s.wallFin : {};
   return s;
 }
 
