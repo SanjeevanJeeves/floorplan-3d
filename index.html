@@ -291,7 +291,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip on" data-layer="wallSnap" title="拖动家具时贴墙吸附" data-en-title="Snap furniture to walls while dragging" data-en="Wall snap">贴墙吸附</button>
     </div>
     <div class="grp only3d">
-      <button class="btn chip on" data-cut="3.19" data-en="Full walls">全高墙</button>
+      <button class="btn chip on" data-cut="3.11" data-en="Full walls">全高墙</button>
       <button class="btn chip" data-cut="1.2" data-en="Cut walls">剖切墙</button>
     </div>
     <div class="grp only3d" id="toggles3d">
@@ -1333,7 +1333,7 @@ function furnPanel(f){
       <label>${tr('中心','Center')} Y (mm)<input type="number" id="fY" value="${Math.round(f.cy)}" step="10"></label>
       <label>${tr('旋转','Rotation')} (°)<input type="number" id="fR" value="${f.rot}" step="15"></label>
       <label>${tr('颜色','Color')}<input type="color" id="fC" value="${f.color}"></label>
-      ${f.type === 'bulkhead' ? `<label>Underside height (mm)<input type="number" id="fZb" value="${f.zb || 2840}" step="10" min="2100" max="3100"></label><label>Box height (mm)<input type="number" id="fBh" value="${f.bh || 150}" step="10" min="50" max="500"></label><label>Cove LED<select id="fLed"><option value="1" ${f.led !== false ? 'selected' : ''}>On (room side)</option><option value="0" ${f.led === false ? 'selected' : ''}>Off</option></select></label><label>Finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('ceil') || v[6].split(' ').includes('wall')).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${WALL_SWATCH.map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">Depth = how far it comes out from the wall (developer: 450). Box = the bulkhead's own height; the gap above it up to the 3,110 ceiling is the cove, with an LED strip on the room side (glows at Night). Walls run to the slab at 3,190. Hidden in 3D when walls are cut.</div>` : ''}
+      ${f.type === 'bulkhead' ? `<label>Underside height (mm)<input type="number" id="fZb" value="${f.zb || 2840}" step="10" min="2100" max="3100"></label><label>Cove lip height (mm)<input type="number" id="fBh" value="${f.bh || 100}" step="10" min="50" max="250"></label><label>Cove trough width (mm)<input type="number" id="fTw" value="${f.tw || 100}" step="10" min="50" max="300"></label><label>Cove LED<select id="fLed"><option value="1" ${f.led !== false ? 'selected' : ''}>On (room side)</option><option value="0" ${f.led === false ? 'selected' : ''}>Off</option></select></label><label>Finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('ceil') || v[6].split(' ').includes('wall')).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${WALL_SWATCH.map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">As the developer's detail: 450 deep bulkhead, underside 2,840. Wall side = closed gypsum box (AC, conduits) up to the 3,110 ceiling; room side = 100 wide open trough with a 100 lip and the LED strip, lighting the 3,110 ceiling (glows at Night). Hidden in 3D when walls are cut.</div>` : ''}
     </div>
     <div class="muted" style="margin-top:8px">${tr('占地面积','Footprint')} ${fmt(f.w*f.d/1e6)} m²</div>
     <div class="actions">
@@ -1352,7 +1352,8 @@ function bindFurnPanel(f){
   num('#fX', (g,v) => g.cx = v); num('#fY', (g,v) => g.cy = v); num('#fR', (g,v) => g.rot = norm(v));
   $('#fC').onchange = e => upd(g => g.color = e.target.value);
   if ($('#fZb')) num('#fZb', (g,v) => g.zb = Math.max(2100, Math.min(3100, Math.round(v))));
-  if ($('#fBh')) num('#fBh', (g,v) => g.bh = Math.max(50, Math.min(500, Math.round(v))));
+  if ($('#fBh')) num('#fBh', (g,v) => g.bh = Math.max(50, Math.min(250, Math.round(v))));
+  if ($('#fTw')) num('#fTw', (g,v) => g.tw = Math.max(50, Math.min(300, Math.round(v))));
   if ($('#fLed')) $('#fLed').onchange = e => upd(g => g.led = e.target.value === '1');
   if ($('#fTex')) $('#fTex').onchange = e => upd(g => g.tex = e.target.value);
   document.querySelectorAll('#panel [data-fsw]').forEach(b => b.onclick = () => upd(g => g.color = b.dataset.fsw));
@@ -1885,7 +1886,7 @@ const stage = $('#stage'), host = $('#view3d');
 const OX = 10335, OY = 6400, H = 3.11, SLAB = 3.19, H_DOOR = 2.4, FOV = 45;   // Unit C: ceiling 3,110 (cove 2,840 at the façade)       
 const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
-const opt = {cut:3.19, furn:true, labels:true, night:false, hour:10, mode:'orbit', real:!COARSE, roof:false};
+const opt = {cut:3.11, furn:true, labels:true, night:false, hour:10, mode:'orbit', real:!COARSE, roof:false};
 let coveN = 0, roofG = null;
 let composer = null, gtao = null;
 function makeComposer(){
@@ -2426,16 +2427,20 @@ function buildFurniture(f){
       break;
     }
     case 'bulkhead': {
-      const lo = (f.zb || 2840)/1000, hi = Math.min(H, lo + (f.bh || 150)/1000), m = finMatOf({c:f.color || '#fcfbf8', t:f.tex || 'paint'}, true);
-      g.add(box(w, hi - lo, d, m, 0, lo, 0)); g.userData.ceil = lo;
-      // hanger / back board to the slab on the wall side; LED cove on the room side
+      // developer detail: C450 x 350 gypsum bulkhead — closed box (wall side) up to the ceiling line + 100 wide open trough with a 100 upstand and LED strip (room side)
+      const lo = (f.zb || 2840)/1000, lip = (f.bh || 100)/1000, tw = Math.min(d - .05, (f.tw || 100)/1000), t = .02, m = finMatOf({c:f.color || '#fcfbf8', t:f.tex || 'paint'}, true);
       const rr = (f.rot || 0) * Math.PI/180, side = v => { const px = f.cx - v*Math.sin(rr), py = f.cy + v*Math.cos(rr);
         return Math.min(...snapRects().map(q => Math.hypot(Math.max(q[0]-px, 0, px-q[2]), Math.max(q[1]-py, 0, py-q[3])))); };
       const sg = side(f.d/2) < side(-f.d/2) ? -1 : 1;     // +1: room side is local +z
-      if (f.led !== false && hi < H - .02){
-        g.add(box(w - .04, .012, .025, glowMat('#fff8e8', '#ffd9a0', 1.6), 0, hi, sg*(d/2 - .03)));
+      const bd = d - tw, bz0 = -sg*(d/2) + sg*bd/2;         // closed box centre (wall side)
+      g.add(box(w, H - lo, bd, m, 0, lo, bz0));              // box up to the 3,110 ceiling line
+      g.add(box(w, t, tw, m, 0, lo, sg*(d/2 - tw/2)));       // trough floor
+      g.add(box(w, lip, t, m, 0, lo, sg*(d/2 - t/2)));        // upstand lip
+      g.userData.ceil = lo;
+      if (f.led !== false){
+        g.add(box(w - .04, .012, .02, glowMat('#fff8e8', '#ffd9a0', 1.6), 0, lo + t, sg*(d/2 - tw/2)));
         const n = Math.min(3, Math.max(1, Math.round(w/1.6)));
-        for (let i = 0; i < n && coveN < 24; i++, coveN++){ const L = new THREE.PointLight(0xffd6a0, 0, 2.2, 2); L.position.set(-w/2 + w*(i + .5)/n, hi + .05, sg*(d/2 + .06)); L.userData.cove = true; g.add(L); }
+        for (let k = 0; k < n && coveN < 24; k++, coveN++){ const L = new THREE.PointLight(0xffd6a0, 0, 2.2, 2); L.position.set(-w/2 + w*(k + .5)/n, lo + lip + .03, sg*(d/2 - tw/2)); L.userData.cove = true; g.add(L); }
       }
       break;
     }
@@ -2743,7 +2748,7 @@ function buildArch(){
   wallMat = finMat('wall'); frameMat = finMat('wframe'); const dframeMat = finMat('dframe');
   if (!roofG){ roofG = new THREE.Group(); scene.add(roofG); } clearGroup(roofG);
   { const sm = mat('#b9b4ac', {roughness:.95}); ROOMS.forEach(r => { const sg = new THREE.ShapeGeometry(shapeOf(r.poly)); sg.rotateX(-Math.PI/2); const sl = new THREE.Mesh(sg, sm); sl.position.y = SLAB + .002; sl.castShadow = true; roofG.add(sl);
-    const ug = new THREE.ShapeGeometry(shapeOf(r.poly, true)); ug.rotateX(Math.PI/2); const un = new THREE.Mesh(ug, sm); un.position.y = SLAB; roofG.add(un); }); roofG.visible = opt.roof && top >= SLAB; }
+    const ug = new THREE.ShapeGeometry(shapeOf(r.poly, true)); ug.rotateX(Math.PI/2); const un = new THREE.Mesh(ug, sm); un.position.y = SLAB; roofG.add(un); }); roofG.visible = opt.roof && top >= H; }
   ROOMS.forEach(r => {
     const m = floorMat(state.rooms[r.id].mat), bay = r.counted === false && !r.balc;
     const geo = bay ? new THREE.ExtrudeGeometry(shapeOf(r.poly), {depth:.45, bevelEnabled:false}) : new THREE.ShapeGeometry(shapeOf(r.poly));
@@ -3050,7 +3055,7 @@ function setMode(m){
   opt.mode = m; syncModeBtns();
   if (m === 'walk'){
     window.select(null);
-    if (opt.cut < SLAB){ opt.cut = SLAB; syncCutBtns(); sync(); }
+    if (opt.cut < H){ opt.cut = H; syncCutBtns(); sync(); }
     orbit.enabled = false; fly = null;
     camera.position.set(wx(900), 1.6, wz(-400)); camera.lookAt(wx(900), 1.5, wz(3000));   // 入户门外
     $('#walkOverlay').style.display = 'flex';
@@ -3124,7 +3129,7 @@ function bindUI(){
     if (k === 'furn'){ furnG.visible = opt.furn; if (!opt.furn && ui.sel?.kind === 'furn') window.select(null); }
     if (k === 'labels') showLabels(opt.labels && opt.mode === 'orbit' && !anim);
     if (k === 'night') applyLight();
-    if (k === 'roof' && roofG) roofG.visible = opt.roof && opt.cut >= SLAB;
+    if (k === 'roof' && roofG) roofG.visible = opt.roof && opt.cut >= H;
   });
   $('#realBtn').classList.toggle('on', opt.real);
   $('#sun').oninput = e => { opt.hour = +e.target.value; applyLight(); };
