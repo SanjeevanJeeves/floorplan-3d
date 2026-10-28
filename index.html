@@ -36,6 +36,7 @@ header{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 1
 #mepPop.menu-pop{position:fixed;z-index:60;right:auto;min-width:260px;padding:8px 10px;gap:4px}
 .mep-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0;cursor:pointer}.mep-row i{width:12px;height:12px;border-radius:50%;flex:none}
 .mep-row small{margin-left:auto;color:#8a837c;font-size:11px}.mbtn{border:1px solid #ddd;background:#faf7f2;border-radius:6px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.mep-acts{display:flex;flex-wrap:wrap;gap:6px}.mep-acts .btn{padding:6px 10px}
 .mep-note{font-size:11px;color:#8a837c;line-height:1.35;margin-top:4px;max-width:250px}
 
 #langSel .btn{min-width:32px;font-weight:500}
@@ -282,6 +283,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip" data-layer="grid" data-en="Grid">网格</button>
       <button class="btn chip" data-layer="bearing" data-en="Bearing walls">承重墙</button>
       <button class="btn chip" data-layer="mepEx" data-en="Existing MEP">现有机电</button>
+      <button class="btn chip" data-layer="mepPl" data-en="Existing plumbing">现有给排水</button>
       <button class="btn chip on" data-layer="mepNew" data-en="New points">新点位</button>
       <details class="menu mepmenu"><summary class="btn chip" data-en="Point types ▾">点位类型 ▾</summary><div class="menu-pop mep-pop" id="mepPop"></div></details>
       <button class="btn chip on" data-layer="wallSnap" title="拖动家具时贴墙吸附" data-en-title="Snap furniture to walls while dragging" data-en="Wall snap">贴墙吸附</button>
@@ -294,6 +296,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip on" data-t="furn" data-en="Furniture">家具</button>
       <button class="btn chip on" data-t="labels" data-en="Labels">房间名</button>
       <button class="btn chip" data-t="night" data-en="Night">夜景</button>
+      <button class="btn chip" data-t="real" id="realBtn" title="Ambient occlusion: soft contact shadows in corners and under furniture" data-en="Realistic">真实感</button>
     </div>
     <div class="grp only3d"><label class="range"><span data-en="Sun">日照</span> <input type="range" id="sun" min="7" max="18" step=".25" value="10" style="width:84px"><span id="sunT">10:00</span></label></div>
     <div class="spacer"></div>
@@ -307,6 +310,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <div class="menu-pop">
         <button class="btn" id="exportPng" data-en="Export image">导出图片</button>
         <button class="btn" id="exportJson" data-en="Export plan JSON">导出方案 JSON</button>
+        <button class="btn" id="exportMep" data-en="Export MEP schedule (CSV)">导出机电清单 CSV</button>
         <button class="btn" id="importJson" data-en="Import plan">导入方案</button>
         <button class="btn danger" id="reset" data-en="Reset to default">重置为默认方案</button>
       </div></details>
@@ -526,21 +530,36 @@ function accSVG(t,w,d){
 }
 const showFurn = f => isEl(f) ? (ui.layers.mepNew && mepOn.has(elGroup(f.type))) : ui.layers.furn;
 function renderMep(){
-  const g = $('#gMep');
-  if (!ui.layers.mepEx){ g.innerHTML = ''; return; }
-  let s = '';
-  if (mepOn.has('ac')) MEP_UNITS.forEach(u => {
-    const [a,b,c,d] = u.r, col = MEP_COL.ac;
-    s += `<g opacity=".85"><title>${esc(u.id + ' · ' + u.lb + ' (existing, HVAC drawing)')}</title><rect x="${a}" y="${b}" width="${c-a}" height="${d-b}" fill="${u.odu ? '#fff3e0' : '#e3f3df'}" fill-opacity=".7" stroke="${col}" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>` +
-         `<text x="${(a+c)/2}" y="${(b+d)/2}" font-size="120" text-anchor="middle" dominant-baseline="central" fill="${col}" font-weight="700">${u.id}</text></g>`;
-  });
-  MEP_EXIST.forEach(p => {
-    if (!mepOn.has(p.t)) return;
-    const code = KIND2EL[p.k] || 'g', e = EL[code], cross = p.st === 'remove' ? `<path d="M-180 -180L180 180M180 -180L-180 180" stroke="#c62828" stroke-width="2.4" vector-effect="non-scaling-stroke"/>` : '';
-    s += `<g transform="translate(${p.x} ${p.y})" opacity=".9"><title>${esc(`EXISTING ${p.id} (${p.c}) · ${p.lb} · ${p.st.toUpperCase()}${p.nt ? ' — ' + p.nt : ''}`)}</title>` +
-      outletSVG(e[0], e[3], SZ, '#333', cross + `<text x="${-SZ*.6}" y="${SZ*.6}" font-size="80" text-anchor="end" dominant-baseline="hanging" fill="#8a837c">${p.id}</text>`) + `</g>`;
-  });
-  g.innerHTML = s;
+  const g = $('#gMep'); let s = '';
+  const nv = 'vector-effect="non-scaling-stroke"';
+  if (ui.layers.mepPl && mepOn.has('plumb')){
+    MEP_WATER.forEach(l => s += `<polyline points="${l.map(p => p.join(',')).join(' ')}" fill="none" stroke="#0277bd" stroke-width="2" stroke-dasharray="8 4" opacity=".7" ${nv}><title>Existing cold-water supply (inside ceiling) — PLUMBING-WATER SUPPLY R0/R1, original layout</title></polyline>`);
+    MEP_PLUMB.forEach(p => { const a = actOf(p.id), col = p.k === 'gas' ? '#f9a825' : '#0277bd', tag = PL_TAG[p.k] || p.k;
+      s += `<g data-mep="${p.id}" transform="translate(${p.x} ${p.y})" style="cursor:pointer"><title>${esc(`EXISTING ${p.id} · ${p.lb} · ${a.toUpperCase()}${p.nt ? ' — ' + p.nt : ''}`)}</title>` +
+        `<circle r="170" fill="#fff" stroke="${col}" stroke-width="2.4" ${nv}/><text font-size="${tag.length > 3 ? 70 : 100}" text-anchor="middle" dominant-baseline="central" fill="${col}" font-weight="700">${tag}</text>` +
+        (a === 'remove' ? `<path d="M-200 -200L200 200M200 -200L-200 200" stroke="#c62828" stroke-width="2.4" ${nv}/>` : '') +
+        `<text y="230" font-size="80" text-anchor="middle" dominant-baseline="hanging" fill="#8a837c">${p.id}</text></g>`; });
+  }
+  if (ui.layers.mepEx){
+    if (mepOn.has('ac')) MEP_UNITS.forEach(u => {
+      const [a,b,c,d] = u.r, col = MEP_COL.ac, act = actOf(u.id);
+      s += `<g data-mep="${u.id}" opacity=".85" style="cursor:pointer"><title>${esc(u.id + ' · ' + u.lb + ' (existing, HVAC drawing) · ' + act.toUpperCase())}</title><rect x="${a}" y="${b}" width="${c-a}" height="${d-b}" fill="${u.odu ? '#fff3e0' : '#e3f3df'}" fill-opacity=".7" stroke="${col}" stroke-width="2" stroke-dasharray="6 4" ${nv}/>` +
+           `<text x="${(a+c)/2}" y="${(b+d)/2}" font-size="120" text-anchor="middle" dominant-baseline="central" fill="${col}" font-weight="700">${u.id}</text>` +
+           (act === 'remove' ? `<path d="M${a} ${b}L${c} ${d}M${c} ${b}L${a} ${d}" stroke="#c62828" stroke-width="2" ${nv}/>` : '') + `</g>`;
+    });
+    MEP_EXIST.forEach(p => {
+      if (!mepOn.has(p.t)) return;
+      const code = KIND2EL[p.k] || 'g', e = EL[code], act = actOf(p.id);
+      const mark = act === 'remove' ? `<path d="M-180 -180L180 180M180 -180L-180 180" stroke="#c62828" stroke-width="2.4" ${nv}/>`
+        : act === 'relocate' ? `<circle r="230" fill="none" stroke="#ef6c00" stroke-width="2.4" stroke-dasharray="5 3" ${nv}/>`
+        : act === 'check' ? `<text x="-200" y="-150" font-size="160" fill="#8a6d00" font-weight="700">?</text>` : '';
+      s += `<g data-mep="${p.id}" transform="translate(${p.x} ${p.y})" opacity=".9" style="cursor:pointer"><title>${esc(`EXISTING ${p.id} (${p.c}) · ${e[0]} — ${e[1]}${e[2] ? ' @' + e[2] : ''} · ${p.lb} · ${act.toUpperCase()}${p.nt ? ' — ' + p.nt : ''}`)}</title>` +
+        outletSVG(e[0], e[3], SZ, '#333', mark + `<text x="${-SZ*.6}" y="${SZ*.6}" font-size="80" text-anchor="end" dominant-baseline="hanging" fill="#8a837c">${p.id}</text>`) + `</g>`;
+    });
+    state.furniture.filter(f => f.from && showFurn(f)).forEach(f => { const p = exById(f.from); if (!p) return;
+      s += `<line x1="${p.x}" y1="${p.y}" x2="${f.cx}" y2="${f.cy}" stroke="#ef6c00" stroke-width="2" stroke-dasharray="8 5" marker-end="url(#mepArrow)" ${nv} pointer-events="none"/>`; });
+  }
+  g.innerHTML = `<defs><marker id="mepArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ef6c00"/></marker></defs>` + s;
 }
 function buildMepPop(){
   const nEx = t => MEP_EXIST.filter(p => p.t === t).length + (t === 'ac' ? MEP_UNITS.length : 0);
@@ -550,6 +569,85 @@ function buildMepPop(){
     `<div class="mep-note">Symbols and labels follow the contractor's legend. Existing points carry their code (E01…) and are hatched ✕ where their wall is demolished; positions are from the original-layout drawing (±200). Hover for details.</div>`;
   $('#mepPop').querySelectorAll('[data-mt]').forEach(cb => cb.onchange = () => { cb.checked ? mepOn.add(cb.dataset.mt) : mepOn.delete(cb.dataset.mt); renderAll(); });
   $('#mepPop').querySelectorAll('[data-mall]').forEach(b => b.onclick = () => { MEP_TYPES.forEach(t => b.dataset.mall === '1' ? mepOn.add(t[0]) : mepOn.delete(t[0])); buildMepPop(); renderAll(); });
+}
+const MEP_PLUMB = [{"id": "P1", "k": "stack", "x": 8900, "y": 11520, "lb": "Kitchen + S.T stacks: 90\u00d8 KW, 75\u00d8 VP-KW, 110\u00d8 SE, 110\u00d8 VP-SE, 90\u00d8 WA, 75\u00d8 VP-WA", "st": "keep", "nt": "Vertical stacks at the south fa\u00e7ade under the old S.T (KW stack \u2248 8.6 m) \u2014 they stay."}, {"id": "P2", "k": "sink", "x": 5180, "y": 10070, "lb": "Old kitchen sink: CW 1-2-3, HW 1-2, 63\u00d8 KW", "st": "remove", "nt": "On the demolished living/pantry wall. Cap supplies at source; the 63\u00d8 waste ran ~3.6 m east to the stack, drawn just outside the fa\u00e7ade line on the balcony side."}, {"id": "P3", "k": "riser", "x": 5180, "y": 8500, "lb": "Water supply drop from ceiling (old pantry)", "st": "move", "nt": "Re-route at ceiling level to the new sink \u2014 very little ceiling void (slab 3,190, ceiling 3,110)."}, {"id": "P4", "k": "wc", "x": 8600, "y": 10600, "lb": "Old S.T: WC (110\u00d8 SE), floor trap + basin (40/50\u00d8)", "st": "remove", "nt": "Cap at the stacks before the floor drop is filled (\"fill the drop\" \u2014 15.10 developer set)."}, {"id": "P5", "k": "wm", "x": 7700, "y": 11480, "lb": "Washing-machine waste (Detail B) on the drying balcony", "st": "keep", "nt": "Existing W/D provision \u2014 cheapest place for the W/D."}, {"id": "P6", "k": "gas", "x": 7945, "y": 9800, "lb": "Gas point + fuse cock valve + gas detector (old pantry east wall)", "st": "move", "nt": "Wall demolished. Extend to the new hob on the east wall (~2.0\u20132.7 m along the walls) \u2014 LPG contractor; detector low near the hob."}, {"id": "P7", "k": "stack", "x": 10150, "y": 4200, "lb": "Toilet 01 / master toilet stacks (plumb duct D9)", "st": "keep", "nt": "North fa\u00e7ade. New S.T and the enlarged master toilet connect here \u2014 needs the developer's revised SWWW."}, {"id": "P8", "k": "stack", "x": 15100, "y": 11300, "lb": "Toilet 02 stacks (D10) + AP2", "st": "keep", "nt": "Unchanged."}];
+const MEP_WATER = [[[1730, 700], [1730, 4217], [6815, 4217], [6815, 5246], [8594, 5246], [8594, 7448], [19400, 7448], [19400, 7150]], [[8594, 6335], [11082, 6335], [11082, 5300]], [[14087, 7448], [14087, 8755], [13847, 8755], [13847, 9723]], [[8594, 7448], [8594, 10086]], [[8594, 8755], [4892, 8755], [4892, 10086]], [[7356, 8755], [7356, 11380]]];
+
+// ---- plumbing & gas codes, change register (keep / remove / relocate / re-use / check) ----
+MEP_TYPES.push(['plumb','Plumbing & gas','#0277bd']); MEP_COL.plumb = '#0277bd'; mepOn.add('plumb');
+Object.assign(EL, {cw:['CW','Cold water point',0,'#0277bd','plumb'], hw:['HW','Hot water point',0,'#d84315','plumb'],
+  kw:['KW','Waste point',0,'#5d4037','plumb'], gasp:['GAS','Gas point + FCV',0,'#f9a825','plumb']});
+LIB.push({cat:'Plumbing & gas points', items:['cw','hw','kw','gasp'].map(k => ['el_' + k, `${EL[k][0]} · ${EL[k][1]}`, SZ, SZ, EL[k][3]])});
+const PL_TAG = {stack:'STACK', sink:'SINK', riser:'W', wc:'WC', wm:'WM', gas:'GAS'};
+const ACTS = [['keep','Keep','#2e7d32'], ['remove','Remove','#c62828'], ['relocate','Relocate','#ef6c00'], ['reuse','Re-use','#6a1b9a'], ['check','Check on site','#8a6d00']];
+const ACT_DEF = {keep:'keep', remove:'remove', move:'relocate', reuse:'reuse', check:'check'};
+const MA = () => (state.mepAct ||= {});
+const allEx = () => [...MEP_EXIST, ...MEP_PLUMB, ...MEP_UNITS];
+const exById = id => allEx().find(p => p.id === id);
+const actOf = id => MA()[id]?.act || ACT_DEF[exById(id)?.st] || 'keep';
+const exXY = p => p.r ? [(p.r[0] + p.r[2]) / 2, (p.r[1] + p.r[3]) / 2] : [p.x, p.y];
+function roomAt(x, y){
+  const inP = poly => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++){ const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+  const r = ROOMS.find(r => inP(r.poly)); return r ? nm(state.rooms[r.id]?.name || r.name) : '—';
+}
+const elDesc = t => { if (t.startsWith('acc_')){ const [k, c] = ACC[t] || ['?', '?']; return {lab:`${c}k ${k}`, desc:`AC indoor unit, ${k} ${k === 'wall' ? 'split' : 'cassette'} ${c},000 BTU`, h:k === 'wall' ? 'high level' : 'ceiling'}; }
+  const e = EL[elCode(t)] || ['?', '?', 0]; return {lab:e[0], desc:e[1], h:e[2] ? `${e[2]} mm FFL to bottom of fitting` : '—'}; };
+function elTitle(f){ const d = elDesc(f.type); return `NEW · ${d.lab} — ${d.desc} · ${d.h} · ${roomAt(f.cx, f.cy)}${f.from ? ' · relocated from ' + f.from : ''}${f.note ? ' · ' + f.note : ''}`; }
+function relocate(id){
+  const p = exById(id); if (!p || p.r) return;
+  MA()[id] = {...(MA()[id] || {}), act:'relocate'};
+  let f = state.furniture.find(f => f.from === id);
+  if (!f){
+    const code = p.k ? (KIND2EL[p.k] || {sink:'kw', riser:'cw', gas:'gasp', wm:'kw', wc:'kw', stack:'kw'}[p.k] || 'g') : 'g';
+    f = F('el_' + code, `${EL[code][0]} · ${EL[code][1]} (relocated from ${id})`, p.x + 400, p.y + 400, SZ, SZ, 0, EL[code][3]); f.from = id;
+    ui.sel = {kind:'furn', id:f.id}; mutate(() => state.furniture.push(f));
+    toast(`Drag the new ${EL[code][0]} to where ${id} should go`);
+  } else select({kind:'furn', id:f.id});
+}
+function mepPanel(id){
+  const p = exById(id); if (!p) return '';
+  const isU = !!p.r, isP = MEP_PLUMB.includes(p), code = !isU && !isP ? KIND2EL[p.k] : null, e = code ? EL[code] : null;
+  const [x, y] = exXY(p), act = actOf(id), link = state.furniture.find(f => f.from === id), note = MA()[id]?.note || '';
+  const row = (k, v) => v ? `<tr><td class="muted">${k}</td><td>${esc(String(v))}</td></tr>` : '';
+  return `<section><h3>Existing point ${id}</h3><table>
+    ${row('Type', e ? `${e[0]} — ${e[1]}` : isP ? `${PL_TAG[p.k] || p.k} — plumbing / gas` : 'AC unit (HVAC drawing)')}
+    ${row('Description', p.lb)}${row('Height', e && e[2] ? `${e[2]} mm FFL to bottom of fitting` : '')}
+    ${row('Drawing ref', p.c ? `elevation ${p.c}` : isP ? 'SWWW / water supply' : isU ? 'HVAC_L31-Unit_C' : '')}
+    ${row('Room', roomAt(x, y))}${row('Study note', p.nt)}</table></section>
+  <section><h3>Action for the contractor</h3><div class="mep-acts">${ACTS.map(([k, n, c]) => `<button class="btn ${act === k ? 'on' : ''}" data-act="${k}" style="${act === k ? `background:${c};color:#fff;border-color:${c}` : ''}">${n}</button>`).join('')}</div>
+    ${act === 'relocate' && !isU ? `<div class="muted" style="margin:8px 0">${link ? `Moved to the new point at ${Math.round(link.cx)}, ${Math.round(link.cy)} (${roomAt(link.cx, link.cy)}).` : 'Click Relocate to place the new position.'}</div>${link ? '<button class="btn" id="goLink">Select the new position</button>' : ''}` : ''}
+    <label class="full" style="display:block;margin-top:10px">Note to contractor<textarea id="mepNote" rows="3" style="width:100%">${esc(note)}</textarea></label></section>
+  <section><button class="btn" id="mepBack">← Back</button></section>`;
+}
+function bindMepPanel(id){
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = () => { const a = b.dataset.act;
+    if (a === 'relocate') return relocate(id);
+    mutate(() => { MA()[id] = {...(MA()[id] || {}), act:a}; if (a !== 'relocate') state.furniture = state.furniture.filter(f => f.from !== id || a === 'keep' ? true : true); }); });
+  $('#mepNote').onchange = e => mutate(() => MA()[id] = {...(MA()[id] || {}), note:e.target.value});
+  $('#mepBack').onclick = () => select(null);
+  const g = $('#goLink'); if (g) g.onclick = () => select({kind:'furn', id:state.furniture.find(f => f.from === id).id});
+}
+function elInfo(f){
+  const d = elDesc(f.type), src = f.from ? exById(f.from) : null;
+  return `<section><h3>${f.from ? 'Relocated point' : 'New point'}</h3><table>
+    <tr><td class="muted">Type</td><td>${esc(d.lab)} — ${esc(d.desc)}</td></tr><tr><td class="muted">Height</td><td>${esc(d.h)}</td></tr>
+    <tr><td class="muted">Room</td><td>${esc(roomAt(f.cx, f.cy))}</td></tr>${src ? `<tr><td class="muted">From</td><td>${f.from} · ${esc(src.lb)}</td></tr>` : ''}</table>
+    <label class="full" style="display:block;margin-top:8px">Note to contractor<textarea id="elNote" rows="2" style="width:100%">${esc(f.note || '')}</textarea></label></section>`;
+}
+function mepSchedule(){
+  const rows = [['Ref','Status','Type','Description','Height','Room','X mm','Y mm','From','Note']];
+  allEx().forEach(p => { const a = actOf(p.id); if (a === 'keep') return; const [x, y] = exXY(p); const code = KIND2EL[p.k];
+    const link = state.furniture.find(f => f.from === p.id);
+    rows.push([p.id, ACTS.find(t => t[0] === a)[1].toUpperCase(), code ? EL[code][0] : (PL_TAG[p.k] || 'AC'), p.lb, code ? EL[code][2] : '', roomAt(x, y), Math.round(x), Math.round(y),
+      link ? `→ new position ${Math.round(link.cx)}, ${Math.round(link.cy)} (${roomAt(link.cx, link.cy)})` : '', MA()[p.id]?.note || '']); });
+  let n = 0;
+  state.furniture.filter(isEl).forEach(f => { const d = elDesc(f.type); rows.push([f.from ? `${f.from}-R` : `N${String(++n).padStart(2, '0')}`, f.from ? 'RELOCATED TO' : 'NEW', d.lab, d.desc, d.h, roomAt(f.cx, f.cy), Math.round(f.cx), Math.round(f.cy), f.from || '', f.note || '']); });
+  return rows;
+}
+function exportMep(){
+  const csv = mepSchedule().map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  download('UnitC-MEP-schedule.csv', new Blob(['﻿' + csv], {type:'text/csv'}));
 }
 const typeColor = t => { for (const c of LIB) for (const i of c.items) if (i[0]===t) return i[4]; return '#eee'; };
 
@@ -620,7 +718,7 @@ const svg = $('#plan');
 /* ======================= 状态 / 历史 / 存储 ======================= */
 let state = load() || defaultState();
 const ui = {tool:'select', sel:null, mA:null, mCur:null,
-  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepNew:true}};
+  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, mepEx:false, mepPl:false, mepNew:true}};
 let view = {x0:0, y0:0, s:.06};
 const undoStack = [], redoStack = [];
 
@@ -797,7 +895,7 @@ function renderFurn(){
     const fs = Math.max(80, Math.min(170, Math.min(f.w,f.d)*.2));
     const label = Math.min(f.w,f.d) >= 380 && !NOLABEL.includes(f.type)
       ? `<text transform="rotate(${-f.rot})" font-size="${fs}" text-anchor="middle" dominant-baseline="central" fill="#4a443c" opacity=".8" pointer-events="none">${esc(nm(f.name))}</text>` : '';
-    return `<g class="furn" data-fid="${f.id}" transform="translate(${f.cx} ${f.cy}) rotate(${f.rot})">${furnSVG(f.type,f.w,f.d,f.color)}${label}</g>`;
+    return `<g class="furn" data-fid="${f.id}" transform="translate(${f.cx} ${f.cy}) rotate(${f.rot})">${isEl(f) ? `<title>${esc(elTitle(f))}</title>` : ''}${furnSVG(f.type,f.w,f.d,f.color)}${label}</g>`;
   }).join('');
 }
 
@@ -948,7 +1046,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 function renderPanel(){
   renderFab();
   const p = $('#panel');
-  if (ui.sel?.kind === 'furn'){ const f = getF(ui.sel.id); if (f){ p.innerHTML = furnPanel(f); bindFurnPanel(f); return; } }
+  if (ui.sel?.kind === 'mep'){ p.innerHTML = mepPanel(ui.sel.id); bindMepPanel(ui.sel.id); return; }
+  if (ui.sel?.kind === 'furn'){ const f = getF(ui.sel.id); if (f){ p.innerHTML = (isEl(f) ? elInfo(f) : '') + furnPanel(f); bindFurnPanel(f); const n = $('#elNote'); if (n) n.onchange = e => mutate(() => f.note = e.target.value); return; } }
   if (ui.sel?.kind === 'wall'){ p.innerHTML = wallPanel(ui.sel.id); bindWallPanel(ui.sel.id); return; }
   if (ui.sel?.kind === 'room'){ p.innerHTML = roomPanel(ROOMS.find(r => r.id === ui.sel.id)); bindRoomPanel(); return; }
   p.innerHTML = overviewPanel(); bindOverview();
@@ -983,6 +1082,8 @@ function overviewPanel(){
   <section><h3>${tr('地面材料估算','Flooring Estimate')} <small>${tr('含 5% 损耗','incl. 5% waste')}</small></h3>
     <table>${matRows}</table>
     <div class="total"><span>${tr('地面材料合计','Flooring total')}</span><b>¥${Math.round(cost).toLocaleString()}</b></div></section>
+  ${(() => { const ex = allEx().map(p => actOf(p.id)), nw = state.furniture.filter(f => isEl(f) && !f.from).length, rl = state.furniture.filter(f => f.from).length;
+    return `<section><h3>MEP changes <small>for the contractor</small></h3><div class="stats"><div><small>New points</small><span class="big">${nw}</span></div><div><small>Relocated</small><span class="big">${rl}</span></div><div><small>Removed</small><span class="big">${ex.filter(a => a === 'remove').length}</span></div><div><small>To check</small><span class="big">${ex.filter(a => a === 'check').length}</span></div></div><div class="muted" style="font-size:11.5px;margin:6px 0">Click any existing point on the plan to set Keep / Remove / Relocate / Re-use / Check and add a note.</div><div class="actions"><button class="btn" id="ovMep">Export MEP schedule (CSV)</button></div></section>`; })()}
   <section><h3>${tr('方案统计','Plan Stats')}</h3>
     <div class="stats"><div><small>${tr('家具数量','Furniture')}</small><span class="big">${state.furniture.length}</span></div>
       <div><small>${tr('拆除墙体','Walls removed')}</small><span class="big">${fmt(demLen,1)}</span> m</div></div>
@@ -1014,6 +1115,7 @@ function overviewPanel(){
   </div></section>`)}`;
 }
 function bindOverview(){
+  const om = $('#ovMep'); if (om) om.onclick = exportMep;
   document.querySelectorAll('#panel tr[data-room]').forEach(tr => tr.onclick = () => { select({kind:'room', id:tr.dataset.room}); if (is3D()) window.View3D.flyToRoom(tr.dataset.room); });
   $('#clearMeasure').onclick = () => state.measures.length && mutate(() => state.measures = []);
   $('#clearFurn').onclick = clearLayout;
@@ -1323,6 +1425,8 @@ svg.addEventListener('pointerdown', e => {
     drag = {kind:h.dataset.handle, id:ui.sel.id, sx:e.clientX, sy:e.clientY, before:snap(), moved:false};
   } else if (ui.tool === 'demolish' && t.closest('[data-wall]')){
     toggleWall(t.closest('[data-wall]').dataset.wall); return;
+  } else if (ui.tool === 'select' && t.closest('[data-mep]')){
+    select({kind:'mep', id:t.closest('[data-mep]').dataset.mep}); return;
   } else if (ui.tool === 'select' && t.closest('[data-fid]')){
     const f = getF(t.closest('[data-fid]').dataset.fid);
     if (ui.sel?.id !== f.id) select({kind:'furn', id:f.id});
@@ -1586,6 +1690,7 @@ document.addEventListener('pointerdown', e => document.querySelectorAll('details
 matchMedia('(max-width:1100px)').addEventListener('change', () => drawer(null));
 drawer(null);                                  // 恢复上次的面板收起状态
 $('#exportPng').onclick = exportPNG;
+$('#exportMep').onclick = exportMep;
 $('#exportJson').onclick = () => download(tr('户型装修方案', 'floor-plan-design') + '.json', new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
 $('#importJson').onclick = () => $('#fileIn').click();
 $('#fileIn').onchange = e => {
@@ -1633,13 +1738,29 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PointerLockControls} from 'three/addons/controls/PointerLockControls.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {CSS2DRenderer, CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 
 const stage = $('#stage'), host = $('#view3d');
 const OX = 10335, OY = 6400, H = 3.11, H_DOOR = 2.4, FOV = 45;   // Unit C: ceiling 3,110 (cove 2,840 at the façade)       
 const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
-const opt = {cut:3.11, furn:true, labels:true, night:false, hour:10, mode:'orbit'};
+const opt = {cut:3.11, furn:true, labels:true, night:false, hour:10, mode:'orbit', real:!COARSE};
+let composer = null, gtao = null;
+function makeComposer(){
+  try {
+    composer = new EffectComposer(renderer); composer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); composer.setSize(SW(), SH());
+    composer.addPass(new RenderPass(scene, camera));
+    gtao = new GTAOPass(scene, camera, SW(), SH());
+    gtao.updateGtaoMaterial({radius:.45, distanceExponent:1.4, thickness:1, scale:1.15, samples:16, distanceFallOff:1});
+    gtao.updatePdMaterial({lumaPhi:10, depthPhi:2, normalPhi:3, radius:6, rings:2, samples:16});
+    gtao.blendIntensity = .9; composer.addPass(gtao); composer.addPass(new OutputPass());
+  } catch(e){ console.warn('AO off', e); composer = null; }
+}
+function draw(){ if (opt.real && composer) composer.render(); else renderer.render(scene, camera); }
 
 let inited = false, active = false, raf = 0, anim = null, fly = null;
 let renderer, labelRenderer, scene, camera, orbit, walkCtl, hemi, sun, ground, glassMat, wallMat, capMat, frameMat;
@@ -1679,6 +1800,7 @@ function init(){
   scene.add(hemi, sun, sun.target, ground);
 
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), .04).texture; pm.dispose();
+  makeComposer();
   glassMat = new THREE.MeshPhysicalMaterial({color:0xcfe6ef, roughness:.05, transparent:true, opacity:.28, depthWrite:false, side:THREE.DoubleSide});
   wallMat = mat('#f4f1eb', {roughness:.92}); capMat = mat('#34312d', {roughness:.9}); frameMat = mat('#5d6166', {roughness:.5, metalness:.4});
 
@@ -1737,7 +1859,7 @@ function init(){
     else window.select(null);
   });
   new ResizeObserver(() => {
-    renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH());
+    renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH()); composer?.setSize(SW(), SH());
     camera.aspect = SW()/SH(); camera.updateProjectionMatrix();
   }).observe(stage);
   bindUI();
@@ -2630,13 +2752,13 @@ function flyToRoom(id){
 /* ======================= 进入 / 退出 3D ======================= */
 async function enter(){
   init(); active = true;
-  renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH()); camera.aspect = SW()/SH(); camera.updateProjectionMatrix();
+  renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH()); composer?.setSize(SW(), SH()); camera.aspect = SW()/SH(); camera.updateProjectionMatrix();
   sync(true);
   opt.mode = 'orbit'; orbit.enabled = false; showLabels(false);
   const A = planPose(), B = isoFrom(A);
   grow = 0; furnGrow = 0; applyGrow(); setPose(A);
   stage.classList.add('animating');
-  startLoop(); renderer.render(scene, camera);
+  startLoop(); draw();
   stage.classList.add('is3d');                       // 交叉淡入：此刻 3D 画面与 2D 平面完全重合
   await wait(420);
   await animate(1700, t => {
@@ -2828,6 +2950,7 @@ function bindUI(){
     if (k === 'labels') showLabels(opt.labels && opt.mode === 'orbit' && !anim);
     if (k === 'night') applyLight();
   });
+  $('#realBtn').classList.toggle('on', opt.real);
   $('#sun').oninput = e => { opt.hour = +e.target.value; applyLight(); };
 }
 
@@ -2843,7 +2966,7 @@ function loop(){
   else stepWalk(dt);
   doors.forEach(d => { const tg = d.open ? d.a1 : d.a0; d.cur += (tg - d.cur) * Math.min(1, dt*6); d.pivot.rotation.y = d.cur; });
   updateSel();
-  renderer.render(scene, camera);
+  draw();
   labelRenderer.render(scene, camera);
 }
 
