@@ -415,7 +415,7 @@ function applyStaticLang(){
  * ============================================================ */
 // Unit C, Alfred House Avenue — from the developer's DWG (SANJEEWAN.dwg, 15.10.2026), mm, origin top-left
 // 墙体：[x0,y0,x1,y1,类型]  b=RC(black) e=façade n=partition
-const WALLS = [[300, 815, 390, 915, "e"], [1810, 815, 1960, 915, "e"], [8680, 3655, 9650, 3905, "e"], [10565, 3855, 10615, 4455, "e"], [9665, 4455, 10615, 4505, "e"], [12640, 3870, 12805, 4505, "n"], [7685, 6165, 9465, 6295, "n"], [9470, 4505, 9665, 5295, "e"], [12640, 5375, 12790, 5465, "n"], [6720, 6135, 6835, 6295, "n"], [9290, 5000, 9465, 6165, "n"], [9665, 6120, 12640, 6295, "n"], [7685, 6295, 12640, 6325, "n"], [12840, 6120, 14860, 6325, "n"], [14760, 7295, 14860, 7480, "n"], [6845, 7495, 7980, 7545, "n"], [7780, 7545, 7980, 7580, "n"], [9920, 7495, 12420, 7580, "n"], [13340, 7480, 13430, 7580, "n"], [13630, 7480, 13720, 7580, "n"], [14580, 7480, 14860, 7580, "n"], [6845, 7545, 7180, 7695, "n"], [7780, 7580, 7945, 7695, "n"], [5080, 7495, 5925, 7710, "n"], [14760, 7580, 14860, 8450, "n"], [14590, 8450, 15375, 8600, "n"], [9705, 8510, 9885, 9715, "n"], [9225, 9715, 9885, 9815, "n"], [15375, 9450, 15435, 11380, "n"], [9210, 9815, 9885, 10415, "n"], [14625, 10395, 15435, 10455, "n"], [9705, 10415, 9885, 11365, "n"], [7175, 11330, 7945, 11580, "e"], [14415, 11330, 14775, 11580, "e"], [100, 50, 300, 1100, "b"], [1960, 50, 2160, 3655, "b"], [1960, 3655, 2810, 3855, "b"], [5810, 3655, 7965, 3855, "b"], [11415, 3655, 19420, 3855, "b"], [19220, 3855, 19420, 4425, "b"], [6520, 3855, 6720, 6295, "b"], [9465, 5295, 9665, 6295, "b"], [12640, 5465, 12840, 6295, "b"], [4880, 7495, 5080, 8495, "b"], [9720, 7495, 9920, 8495, "b"], [19220, 6425, 19420, 8580, "b"], [15375, 8450, 15575, 9450, "b"], [50, 3055, 300, 11380, "b"], [13430, 7495, 13630, 11380, "b"], [19220, 10580, 19420, 11380, "b"], [50, 11380, 1100, 11580, "b"], [4100, 11380, 5610, 11580, "b"], [8660, 11380, 10550, 11580, "b"], [12550, 11380, 13680, 11580, "b"], [15375, 11380, 19420, 11580, "b"], [14775, 11379, 15375, 11579, "e"], [175, 1100, 315, 3054, "e"], [14625, 10455, 14685, 11330, "n"], [14760, 6325, 14860, 6397, "n"], [12640, 6295, 12840, 6325, "n"], [9470, 3855, 9665, 4505, "n"], [9650, 3655, 10565, 3855, "e"], [10565, 2470, 10615, 3855, "e"], [10615, 3655, 10715, 3855, "e"], [8880, 7495, 9720, 7545, "n"], [8880, 7545, 9720, 7580, "n"], [5925, 7495, 6845, 7580, "n"]];
+const WALLS = [[300, 815, 390, 915, "e"], [1810, 815, 1960, 915, "e"], [8680, 3655, 9650, 3905, "e"], [10565, 3855, 10615, 4455, "e"], [9665, 4455, 10615, 4505, "e"], [12640, 3870, 12805, 4505, "n"], [7685, 6118, 9465, 6327, "n"], [9470, 4505, 9665, 5295, "e"], [12640, 5375, 12790, 5465, "n"], [6720, 6118, 6835, 6327, "n"], [9290, 5000, 9465, 6165, "n"], [9665, 6118, 12640, 6327, "n"], [0, 0, 0, 0, "n"], [12840, 6153, 14860, 6327, "n"], [14760, 7295, 14860, 7480, "n"], [6845, 7482, 7980, 7582, "n"], [0, 0, 0, 0, "n"], [9920, 7482, 12420, 7582, "n"], [13340, 7480, 13430, 7580, "n"], [13630, 7480, 13720, 7580, "n"], [14580, 7480, 14860, 7580, "n"], [6845, 7582, 7180, 7697, "n"], [7780, 7582, 7945, 7697, "n"], [5080, 7482, 5925, 7712, "n"], [14760, 7580, 14860, 8450, "n"], [14590, 8450, 15375, 8600, "n"], [9705, 8510, 9885, 9715, "n"], [9225, 9715, 9885, 9815, "n"], [15375, 9450, 15525, 10395, "n"], [9210, 9815, 9885, 10415, "n"], [14625, 10395, 15435, 10455, "n"], [9705, 10415, 9885, 11365, "n"], [7175, 11330, 7945, 11580, "e"], [14415, 11330, 14775, 11580, "e"], [100, 50, 300, 1100, "b"], [1960, 50, 2160, 3655, "b"], [1960, 3655, 2810, 3855, "b"], [5810, 3654, 7965, 3869, "b"], [11415, 3654, 19420, 3869, "b"], [19205, 3869, 19420, 4425, "b"], [6505, 3869, 6735, 6295, "b"], [9465, 5295, 9665, 6295, "b"], [12640, 5465, 12840, 6295, "b"], [4865, 7482, 5095, 8495, "b"], [9705, 7482, 9935, 8495, "b"], [19220, 6425, 19420, 8580, "b"], [15375, 8450, 15575, 9450, "b"], [50, 3055, 300, 11380, "b"], [13430, 7495, 13630, 11380, "b"], [19220, 10580, 19420, 11380, "b"], [50, 11380, 1100, 11580, "b"], [4100, 11380, 5610, 11580, "b"], [8660, 11364, 10550, 11579, "b"], [12550, 11380, 13680, 11580, "b"], [15375, 11380, 19420, 11580, "b"], [14775, 11379, 15375, 11579, "e"], [175, 1100, 315, 3054, "e"], [14625, 10455, 14685, 11330, "n"], [14760, 6327, 14860, 6397, "n"], [12640, 6295, 12840, 6327, "n"], [9470, 3855, 9665, 4505, "n"], [9650, 3655, 10565, 3855, "e"], [10565, 2470, 10615, 3855, "e"], [10615, 3655, 10715, 3855, "e"], [8880, 7482, 9720, 7582, "n"], [0, 0, 0, 0, "n"], [5925, 7482, 6845, 7582, "n"], [15375, 10395, 15435, 11380, "n"]];
 const WINS = [[7960, 11379, 8660, 11579, 1.75, 2.65], [13680, 11379, 14380, 11579, 1.75, 2.65], [7965, 3654, 8665, 3854, 1.75, 2.65], [10715, 3654, 11415, 3854, 1.75, 2.65], [1400, 815, 1800, 915, 0, 2.4]];
 const DOORS = [{"name": "Entrance door", "rect": [400, 815, 1400, 915], "h": [400, 865], "c": [1, 0], "o": [0, 1], "len": 1000, "entry": true}, {"name": "D2", "rect": [12430, 7482, 13330, 7582], "h": [13330, 7532], "c": [-1, 0], "o": [0, 1], "len": 900}, {"name": "D3", "rect": [13730, 7482, 14580, 7582], "h": [13730, 7532], "c": [1, 0], "o": [0, 1], "len": 850}, {"name": "D2", "rect": [14760, 6397, 14860, 7297], "h": [14810, 7297], "c": [0, -1], "o": [1, 0], "len": 900}, {"name": "D3", "rect": [12640, 4517, 12790, 5367], "h": [12715, 4517], "c": [0, 1], "o": [-1, 0], "len": 850}, {"name": "D3", "rect": [6835, 6133, 7685, 6327], "h": [6835, 6312], "c": [1, 0], "o": [0, -1], "len": 850}];
 const SLIDES = [{"rect": [1100, 11379, 4100, 11579], "v": false, "h": 2.65, "mark": "DW1"}, {"rect": [5609, 11379, 7160, 11579], "v": false, "h": 2.65, "mark": "DW3"}, {"rect": [10550, 11379, 12550, 11579], "v": false, "h": 2.65, "mark": "DW2"}, {"rect": [2810, 3654, 5810, 3854], "v": false, "h": 2.65, "mark": "DW1"}, {"rect": [19220, 4427, 19420, 6427], "v": true, "h": 2.65, "mark": "DW2"}, {"rect": [19220, 8579, 19420, 10579], "v": true, "h": 2.65, "mark": "DW2"}, {"rect": [7980, 7495, 8880, 7580], "v": false, "h": 2.4, "mark": "SD", "solid": true, "slide": 1}];
@@ -660,6 +660,8 @@ const nwLen = w => Math.round(Math.max(w.x1 - w.x0, w.y1 - w.y0));
 const nwT = w => Math.round(Math.min(w.x1 - w.x0, w.y1 - w.y0));
 const isOrig = () => !!ui.layers.orig;
 let wallT = 100;
+// wall thicknesses used on the developer's plan (SANJEEWAN.dwg)
+const STD_T = [[50,'duct'], [100,'partition'], [140,'ICC panel'], [150,'toilet wall'], [165,'toilet wall'], [180,'kitchen/bed'], [200,'RC'], [209,'passage'], [215,'façade RC'], [230,'RC pier'], [250,'façade']];
 function nwFromLine(a, b, t){
   const hz = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y), h = t/2;
   return hz ? {x0:Math.min(a.x, b.x), x1:Math.max(a.x, b.x), y0:a.y - h, y1:a.y + h} : {x0:a.x - h, x1:a.x + h, y0:Math.min(a.y, b.y), y1:Math.max(a.y, b.y)};
@@ -688,15 +690,16 @@ function nwPanel(id){
   const w = NW().find(w => w.id === id); if (!w) return '';
   const hz = (w.x1 - w.x0) >= (w.y1 - w.y0);
   return `<section><h3>New wall</h3><div class="form">
-    <label>Thickness (mm)<select id="nwT">${[75, 100, 115, 150, 200, 230].map(t => `<option ${t === nwT(w) ? 'selected' : ''}>${t}</option>`).join('')}${[75,100,115,150,200,230].includes(nwT(w)) ? '' : `<option selected>${nwT(w)}</option>`}</select></label>
+    <label>Thickness (mm)<select id="nwT">${STD_T.map(([t, d]) => `<option value="${t}" ${t === nwT(w) ? 'selected' : ''}>${t} — ${d}</option>`).join('')}${STD_T.some(x => x[0] === nwT(w)) ? '' : `<option selected>${nwT(w)}</option>`}</select></label>
     <label>Length (mm)<input type="number" id="nwL" value="${nwLen(w)}" step="10" min="100"></label>
     <label>Height<select id="nwH"><option value="0" ${!w.h ? 'selected' : ''}>Full height</option>${[900, 1100, 1200, 1500, 2100, 2400].map(h => `<option value="${h}" ${w.h === h ? 'selected' : ''}>${h} mm</option>`).join('')}</select></label>
     <label>Run<input value="${hz ? 'East–west' : 'North–south'}" disabled></label>
     <label>${hz ? 'Start X' : 'X (centre)'} (mm)<input type="number" id="nwX" value="${Math.round(hz ? w.x0 : (w.x0 + w.x1)/2)}" step="10"></label>
     <label>${hz ? 'Y (centre)' : 'Start Y'} (mm)<input type="number" id="nwY" value="${Math.round(hz ? (w.y0 + w.y1)/2 : w.y0)}" step="10"></label>
     <label class="full">Material / note<input id="nwN" value="${esc(w.note || '')}" placeholder="e.g. 100 block, gypsum, glass…"></label></div>
-    <div class="muted" style="font-size:11.5px;margin:6px 0">Drag the wall on the plan to move it (it snaps to other walls). Room: ${esc(roomAt((w.x0+w.x1)/2, (w.y0+w.y1)/2))}.</div>
-    <div class="actions"><button class="btn danger" id="nwDel">Delete wall</button><button class="btn" id="nwBack">← Back</button></div></section>`;
+    <div class="muted" style="font-size:11.5px;margin:6px 0">Drag to move, or use the arrow keys (10 mm; Shift = 100 mm). Snaps to other walls.</div>
+    <div class="actions"><button class="btn danger" id="nwDel">Delete wall</button><button class="btn" id="nwBack">← Back</button></div></section>
+  <section><h3>Wall finish</h3>${wallFinSides(id, nwRect(w))}</section>`;
 }
 function bindNwPanel(id){
   const w = NW().find(w => w.id === id); if (!w) return;
@@ -707,8 +710,9 @@ function bindNwPanel(id){
   $('#nwX').onchange = e => mutate(() => { const v = +e.target.value; if (hz()){ const L = w.x1 - w.x0; w.x0 = v; w.x1 = v + L; } else { const t = w.x1 - w.x0; w.x0 = v - t/2; w.x1 = v + t/2; } });
   $('#nwY').onchange = e => mutate(() => { const v = +e.target.value; if (hz()){ const t = w.y1 - w.y0; w.y0 = v - t/2; w.y1 = v + t/2; } else { const L = w.y1 - w.y0; w.y0 = v; w.y1 = v + L; } });
   $('#nwN').onchange = e => mutate(() => w.note = e.target.value);
-  $('#nwDel').onclick = () => { ui.sel = null; mutate(() => state.newWalls = NW().filter(x => x.id !== id)); };
+  $('#nwDel').onclick = () => { ui.sel = null; mutate(() => { state.newWalls = NW().filter(x => x.id !== id); delete state.wallFin[id]; }); };
   $('#nwBack').onclick = () => select(null);
+  bindWallPanel(id);
 }
 function wallRows(){
   const rows = [];
@@ -750,7 +754,7 @@ const FIN_SWATCH = {wall:WALL_SWATCH,
 const inPoly = (x, y, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++){ const [xi, yi] = poly[i], [xj, yj] = poly[j];
   if ((yi > y) !== (yj > y) && x < (xj - xi)*(y - yi)/(yj - yi) + xi) c = !c; } return c; };
 function wallSides(i){
-  const [x0, y0, x1, y1] = WALLS[i], horiz = (x1 - x0) >= (y1 - y0), mx = (x0 + x1)/2, my = (y0 + y1)/2;
+  const [x0, y0, x1, y1] = Array.isArray(i) ? i : WALLS[i], horiz = (x1 - x0) >= (y1 - y0), mx = (x0 + x1)/2, my = (y0 + y1)/2;
   const probe = (x, y) => { const r = ROOMS.find(r => inPoly(x, y, r.poly)); return r ? r.id : null; };
   const a = horiz ? probe(mx, y0 - 120) : probe(x0 - 120, my), b = horiz ? probe(mx, y1 + 120) : probe(x1 + 120, my);
   return {horiz, a, b, an:horiz ? tr('北侧','North side') : tr('西侧','West side'), bn:horiz ? tr('南侧','South side') : tr('东侧','East side')};
@@ -806,7 +810,7 @@ const bbox = poly => { const xs = poly.map(p=>p[0]), ys = poly.map(p=>p[1]); ret
 function aabb(f){ const a = f.rot*Math.PI/180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a)); return {hw:f.w/2*c + f.d/2*s, hh:f.w/2*s + f.d/2*c}; }
 const fmt = (n, d=2) => n.toFixed(d);
 const norm = a => ((Math.round(a) % 360) + 360) % 360;
-function snapRects(){ return WALLS.filter((w,i) => !state.demolished.includes('w'+i)).concat(WINS, NW().map(nwRect)); }
+function snapRects(){ return WALLS.filter((w,i) => w[2] > w[0] && !state.demolished.includes('w'+i)).concat(WINS, NW().map(nwRect)); }
 
 /* ======================= 颜色 / 材质图案 ======================= */
 function hex2rgb(h){ h = h.replace('#',''); if (h.length===3) h = h.split('').map(c=>c+c).join(''); const n = parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
@@ -1266,6 +1270,17 @@ function roomPanel(r){
     <table>${inside.map(f => `<tr class="click" data-fid="${f.id}"><td>${esc(nm(f.name))}</td><td class="r muted">${f.w}×${f.d}</td></tr>`).join('') || `<tr><td class="muted">${tr('暂无','None')}</td></tr>`}</table>
     <div class="actions"><button class="btn" id="back">${tr('← 返回总览','← Back to overview')}</button></div></section>`;
 }
+function wallFinSides(id, rect){
+  const ws = wallSides(rect), own = state.wallFin[id] || {}, def = state.finishes.wall;
+  const rn = rid => rid ? esc(nm(state.rooms[rid].name)) : tr('室外','Outside');
+  const side = (k, label, rid) => { const f = own[k], cur = f || def;
+    const opts = Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('wall')).map(([tid, v]) => `<option value="${tid}" ${tid === cur.t ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('');
+    return `<div class="wside"><h4><span>${k.toUpperCase()} · ${label}</span><small>${rn(rid)}</small></h4>
+      <div class="fin"><span>${f ? tr('本墙颜色','This wall') : tr('默认','Default')}</span><input type="color" data-wc="${k}" value="${cur.c}"><select data-wt="${k}">${opts}</select>
+      <div class="finsw">${WALL_SWATCH.map(c => `<button data-ws="${k}" data-c="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div></div>
+      ${f ? `<div class="actions"><button class="btn" data-wreset="${k}">${tr('恢复默认','Use default')}</button></div>` : ''}</div>`; };
+  return side('a', ws.an, ws.a) + side('b', ws.bn, ws.b) + `<div class="actions"><button class="btn" id="wBoth">${tr('两面同色（A → B）','Copy side A to B')}</button></div>`;
+}
 function wallPanel(id){
   const i = +id.slice(1), w = WALLS[i], ws = wallSides(i), len = Math.max(w[2]-w[0], w[3]-w[1]), th = Math.min(w[2]-w[0], w[3]-w[1]);
   const kind = {b:tr('钢筋混凝土（承重）','Concrete (structural)'), e:tr('外墙','Façade wall'), n:tr('内隔墙','Partition'), low:tr('矮墙','Low wall')}[w[4]];
@@ -1280,8 +1295,8 @@ function wallPanel(id){
   return `<section><h3>${tr('墙体','Wall')} <small>${kind}</small></h3>
     <div class="stats"><div><small>${tr('长度','Length')}</small><span class="big">${len}</span> mm</div><div><small>${tr('厚度','Thickness')}</small><span class="big">${th}</span> mm</div></div>
     <div class="muted" style="font-size:11.5px;margin-top:6px">${tr('两面可分别设置颜色和材质；其它墙体保持默认饰面。门窗洞口上方的过梁沿用默认。','Each face can have its own colour and texture; every other wall keeps the default finish. The strip above a door or window opening keeps the default.')}</div>
-    ${side('a', ws.an, ws.a)}${side('b', ws.bn, ws.b)}
-    <div class="actions"><button class="btn" id="wBoth">${tr('两面同色（A → B）','Copy side A to B')}</button><button class="btn" id="back">${tr('← 返回总览','← Back to overview')}</button></div></section>`;
+    ${wallFinSides(id, w)}
+    <div class="actions"><button class="btn" id="back">${tr('← 返回总览','← Back to overview')}</button></div></section>`;
 }
 function bindWallPanel(id){
   const set = (k, patch) => mutate(() => { const o = state.wallFin[id] || {}; o[k] = {...(o[k] || state.finishes.wall), ...patch}; state.wallFin[id] = o; });
@@ -1290,7 +1305,7 @@ function bindWallPanel(id){
   document.querySelectorAll('#panel [data-ws]').forEach(b => b.onclick = () => set(b.dataset.ws, {c:b.dataset.c}));
   document.querySelectorAll('#panel [data-wreset]').forEach(b => b.onclick = () => mutate(() => { const o = state.wallFin[id] || {}; delete o[b.dataset.wreset]; if (o.a || o.b) state.wallFin[id] = o; else delete state.wallFin[id]; }));
   $('#wBoth').onclick = () => mutate(() => { const o = state.wallFin[id] || {}; const a = o.a || state.finishes.wall; o.a = {...a}; o.b = {...a}; state.wallFin[id] = o; });
-  $('#back').onclick = () => select(null);
+  const bk = $('#back'); if (bk) bk.onclick = () => select(null);
 }
 function bindRoomPanel(){
   const id = ui.sel.id;
@@ -1626,6 +1641,10 @@ document.addEventListener('keydown', e => {
   else if (k === 'r') rotateSel(e.shiftKey ? -90 : 90);
   else if (k === 'delete' || k === 'backspace'){ e.preventDefault(); deleteSel(); }
   else if (k === 'escape'){ if (ui.wA){ ui.wA = ui.wCur = null; renderMeasure(); } else if (ui.mA){ ui.mA = null; renderMeasure(); } else { if (ui.tool !== 'select') setTool('select'); select(null); } }
+  else if (k.startsWith('arrow') && ui.sel?.kind === 'nwall'){
+    e.preventDefault(); const st = e.shiftKey ? 100 : 10, dx = k==='arrowleft' ? -st : k==='arrowright' ? st : 0, dy = k==='arrowup' ? -st : k==='arrowdown' ? st : 0;
+    mutate(() => { const w = NW().find(w => w.id === ui.sel.id); if (w){ w.x0 += dx; w.x1 += dx; w.y0 += dy; w.y1 += dy; } });
+  }
   else if (k.startsWith('arrow') && ui.sel?.kind === 'furn'){
     e.preventDefault(); const st = e.shiftKey ? 100 : 10;
     mutate(() => { const f = getF(ui.sel.id); if (k==='arrowleft') f.cx -= st; if (k==='arrowright') f.cx += st; if (k==='arrowup') f.cy -= st; if (k==='arrowdown') f.cy += st; });
@@ -1958,7 +1977,7 @@ function init(){
     const h = pick(e);
     if (h?.door) h.door.open = !h.door.open;
     else if (h?.fid) window.select({kind:'furn', id:h.fid});
-    else if (h?.wall) window.select({kind:'wall', id:h.wall});
+    else if (h?.wall) window.select({kind:h.wall.startsWith('nw') ? 'nwall' : 'wall', id:h.wall});
     else if (h?.room) window.select({kind:'room', id:h.room});
     else window.select(null);
   });
@@ -2704,7 +2723,7 @@ function buildArch(){
   });
   [...DOORS, ...SLIDES, ...OPENS.map(rect => ({rect}))].forEach(d => { const [x0, y0, x1, y1] = d.rect; const s = box(M(x1-x0), .012, M(y1-y0), mat('#d8d0c0', {roughness:.3}), wx((x0+x1)/2), 0, wz((y0+y1)/2)); s.castShadow = false; archFloor.add(s); });
   WALLS.forEach((w, i) => {
-    if (!isOrig() && state.demolished.includes('w'+i)) return;
+    if (w[2] <= w[0] || (!isOrig() && state.demolished.includes('w'+i))) return;
     const own = state.wallFin?.['w'+i];
     let mats;
     if (own){   // per-face: [+x, -x, top, bottom, +z, -z]; side a = north/west (-z / -x), b = south/east (+z / +x)
@@ -2715,7 +2734,8 @@ function buildArch(){
     if (wallBox.last) wallBox.last.userData.wall = 'w'+i;
     colliders.push([wx(w[0]), wz(w[1]), wx(w[2]), wz(w[3])]);
   });
-  if (!isOrig()) NW().forEach(w => { wallBox(nwRect(w), 0, w.h ? Math.min(w.h/1000, top) : top); if (wallBox.last) wallBox.last.userData.nwall = w.id; colliders.push([wx(w.x0), wz(w.y0), wx(w.x1), wz(w.y1)]); });
+  if (!isOrig()) NW().forEach(w => { const own = state.wallFin?.[w.id]; let mats; if (own){ const A = own.a ? finMatOf(own.a, true) : wallMat, B = own.b ? finMatOf(own.b, true) : wallMat, hz = (w.x1-w.x0) >= (w.y1-w.y0); mats = hz ? [wallMat, wallMat, capMat, wallMat, B, A] : [B, A, capMat, wallMat, wallMat, wallMat]; }
+    wallBox.last = null; wallBox(nwRect(w), 0, w.h ? Math.min(w.h/1000, top) : top, mats); if (wallBox.last) wallBox.last.userData.wall = w.id; if (wallBox.last) wallBox.last.userData.nwall = w.id; colliders.push([wx(w.x0), wz(w.y0), wx(w.x1), wz(w.y1)]); });
   // 门洞、飘窗洞口上方过梁
   [...DOORS.map(d => [d.rect, 2.4]), ...SLIDES.map(s => [s.rect, s.h ?? (s.v ? 2.4 : 2.1)])]
     .forEach(([r, h]) => { if (top > h) wallBox(r, h, top); });
@@ -2930,11 +2950,11 @@ function groundAt(x, y){
   return {x:hit.x*1000 + OX, y:hit.z*1000 + OY, s};
 }
 function updateSel(){
-  const key = ui.sel?.kind === 'furn' || ui.sel?.kind === 'wall' ? ui.sel.id + ':' + archUp.children.length : '';
+  const key = ['furn','wall','nwall'].includes(ui.sel?.kind) ? ui.sel.id + ':' + archUp.children.length : '';
   if (key !== selKey){
     selKey = key;
     if (selHelper){ scene.remove(selHelper); selHelper.geometry.dispose(); selHelper = null; }
-    const g = key && (ui.sel.kind === 'wall' ? archUp.children.find(o => o.userData.wall === ui.sel.id) : furnG.children.find(g => g.userData.fid === ui.sel.id));
+    const g = key && (ui.sel.kind === 'wall' || ui.sel.kind === 'nwall' ? archUp.children.find(o => o.userData.wall === ui.sel.id) : furnG.children.find(g => g.userData.fid === ui.sel.id));
     if (g){ selHelper = new THREE.BoxHelper(g, 0xb5653a); scene.add(selHelper); }
   }
   if (selHelper) selHelper.update();
