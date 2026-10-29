@@ -455,7 +455,7 @@ const LIB = [
   {cat:'餐厨', items:[
     ['table','餐桌',1400,800,'#e2cfb4'],['table','六人餐桌',1800,900,'#d8c2a2'],['roundtable','圆桌',1000,1000,'#e2cfb4'],
     ['chair','餐椅',450,480,'#cfc6b8'],['island','岛台',1800,900,'#e9e5de'],['barstool','吧椅',420,420,'#6b5d4c'],
-    ['counter','橱柜台面',1600,600,'#e9e5de'],['counterlow','橱柜（仅地柜）',1600,600,'#e9e5de'],['stove','燃气灶',750,450,'#dcdcdc'],['ksink','水槽',800,450,'#e1e6ea'],
+    ['counter','橱柜台面',1600,600,'#e9e5de'],['counterlow','橱柜（仅地柜）',1600,600,'#e9e5de'],['tallcab','Tall cupboard 600 · floor to cove',600,600,'#e9e5de'],['tallcab','Tall cupboard 1200 (2 × 600)',1200,600,'#e9e5de'],['stove','燃气灶',750,450,'#dcdcdc'],['ksink','水槽',800,450,'#e1e6ea'],
     ['fridge','冰箱',700,700,'#dfe4e8'],['cabinet','餐边柜',1600,400,'#efe6d8']]},
   {cat:'卫浴', items:[
     ['toilet','马桶',400,700,'#ffffff'],['vanity','浴室柜',800,500,'#eef1f3'],['vanity','双盆浴室柜',1200,500,'#eef1f3'],
@@ -908,6 +908,7 @@ function furnSVG(t,w,d,c){
     case 'roundtable': return ec(0,0,w/2,d/2,c) + ec(0,0,w/2-50,d/2-50,'none','opacity=".4"');
     case 'counter': return rc(x,y,w,d,c) + ln(x,y+d-40,x+w,y+d-40,DASH);
     case 'counterlow': return rc(x,y,w,d,c);
+    case 'tallcab': { let s = rc(x,y,w,d,c) + ln(x,y,x+w,y+d) + ln(x+w,y,x,y+d); for (let i = 1; i < Math.round(w/600); i++) s += ln(x + i*w/Math.round(w/600), y, x + i*w/Math.round(w/600), y+d); return s; }
     case 'stove': {
       let s = rc(x,y,w,d,'#2f2f2f','rx="20"'); const r = m*.26;
       const pts = w/d > 1.4 ? [[-w/4,0],[w/4,0]] : [[-w/4,-d/4],[w/4,-d/4],[-w/4,d/4],[w/4,d/4]];
@@ -961,7 +962,7 @@ function furnSVG(t,w,d,c){
 }
 
 /* ======================= 渲染 ======================= */
-const NOLABEL = ['bulkhead','acc_1w18','acc_1w24','acc_2w24','acc_4w24','acc_w12','acc_w18','plant','floorlamp','sidetable','barstool','beanbag'];
+const NOLABEL = ['tallcab','bulkhead','acc_1w18','acc_1w24','acc_2w24','acc_4w24','acc_w12','acc_w18','plant','floorlamp','sidetable','barstool','beanbag'];
 function renderRooms(){
   let s = '';
   ROOMS.forEach(r => s += `<polygon class="room" data-room="${r.id}" points="${r.poly.map(p=>p.join(',')).join(' ')}" fill="url(#m-${state.rooms[r.id].mat})"/>`);
@@ -1335,6 +1336,7 @@ function furnPanel(f){
       <label>${tr('中心','Center')} Y (mm)<input type="number" id="fY" value="${Math.round(f.cy)}" step="10"></label>
       <label>${tr('旋转','Rotation')} (°)<input type="number" id="fR" value="${f.rot}" step="15"></label>
       <label>${tr('颜色','Color')}<input type="color" id="fC" value="${f.color}"></label>
+      ${f.type === 'tallcab' ? `<label>Height (mm)<input type="number" id="fTh" value="${f.th || 2840}" step="10" min="1800" max="3110"></label><label>Front finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => /door|wall/.test(v[6])).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><label>Handles<select id="fHd">${[['bar','Bar'],['edge','Edge pull'],['knob','Knob'],['none','Push-to-open']].map(([k, n]) => `<option value="${k}" ${k === (f.hd || 'bar') ? 'selected' : ''}>${n}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${[...FIN_SWATCH.door, ...WALL_SWATCH].map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">Floor to the cove underside (2,840) by default — set 3,110 to run to the main ceiling. Width in steps of 600 = one door each; split top/bottom doors above 2,200.</div>` : ''}
       ${f.type === 'bulkhead' ? `<label>Underside height (mm)<input type="number" id="fZb" value="${f.zb || 2840}" step="10" min="2100" max="3100"></label><label>Cove lip height (mm)<input type="number" id="fBh" value="${f.bh || 100}" step="10" min="50" max="250"></label><label>Cove trough width (mm)<input type="number" id="fTw" value="${f.tw || 100}" step="10" min="50" max="300"></label><label>Cove LED<select id="fLed"><option value="1" ${f.led !== false ? 'selected' : ''}>On (room side)</option><option value="0" ${f.led === false ? 'selected' : ''}>Off</option></select></label><label>Finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('ceil') || v[6].split(' ').includes('wall')).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${WALL_SWATCH.map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">As the developer's detail: 450 deep bulkhead, underside 2,840. Wall side = closed gypsum box (AC, conduits) up to the 3,110 ceiling; room side = 100 wide open trough with a 100 lip and the LED strip, lighting the 3,110 ceiling (glows at Night). Hidden in 3D when walls are cut.</div>` : ''}
     </div>
     <div class="muted" style="margin-top:8px">${tr('占地面积','Footprint')} ${fmt(f.w*f.d/1e6)} m²</div>
@@ -1358,6 +1360,8 @@ function bindFurnPanel(f){
   if ($('#fTw')) num('#fTw', (g,v) => g.tw = Math.max(50, Math.min(300, Math.round(v))));
   if ($('#fLed')) $('#fLed').onchange = e => upd(g => g.led = e.target.value === '1');
   if ($('#fTex')) $('#fTex').onchange = e => upd(g => g.tex = e.target.value);
+  if ($('#fTh')) num('#fTh', (g,v) => g.th = Math.max(1800, Math.min(3110, Math.round(v))));
+  if ($('#fHd')) $('#fHd').onchange = e => upd(g => g.hd = e.target.value);
   document.querySelectorAll('#panel [data-fsw]').forEach(b => b.onclick = () => upd(g => g.color = b.dataset.fsw));
   $('#aRot').onclick = () => rotateSel(90);
   $('#aDup').onclick = duplicateSel;
@@ -2444,6 +2448,13 @@ function buildFurniture(f){
         const n = Math.min(3, Math.max(1, Math.round(w/1.6)));
         for (let k = 0; k < n && coveN < 24; k++, coveN++){ const L = new THREE.PointLight(0xffd6a0, 0, 2.2, 2); L.position.set(-w/2 + w*(k + .5)/n, lo + lip + .03, sg*(d/2 - tw/2)); L.userData.cove = true; g.add(L); }
       }
+      break;
+    }
+    case 'tallcab': {
+      const ht = Math.min(H, (f.th || 2840)/1000), n = Math.max(1, Math.round(w/.6)), body = mat(f.color || c, {roughness:.5}), fz = d/2 - .02;
+      const fm = finMatOf({c:f.color || c, t:f.tex || 'paint'}, false);
+      g.add(box(w - .01, .1, d - .06, '#4a4641', 0, 0, -.03), box(w, ht - .1, d - .02, body, 0, .1, -.01));
+      fronts(g, -w/2, .1, w, ht - .1, fz, n, ht > 2.2 ? 2 : 1, fm, f.hd || 'bar', 1.05);
       break;
     }
     case 'counterlow': {
