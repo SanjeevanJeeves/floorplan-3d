@@ -315,6 +315,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <div class="menu-pop">
         <button class="btn" id="exportPng" data-en="Export image">导出图片</button>
         <button class="btn" id="exportJson" data-en="Export plan JSON">导出方案 JSON</button>
+        <button class="btn" id="addOppein" data-en="Add OPPEIN kitchen (re-use plan)">添加 OPPEIN 厨房</button>
         <button class="btn" id="exportMep" data-en="Export MEP schedule (CSV)">导出机电清单 CSV</button>
         <button class="btn" id="importJson" data-en="Import plan">导入方案</button>
         <button class="btn danger" id="reset" data-en="Reset to default">重置为默认方案</button>
@@ -729,6 +730,42 @@ function wallRows(){
   NW().forEach((w, i) => rows.push([`NW${String(i+1).padStart(2,'0')}`, 'NEW WALL', 'Wall', `${nwLen(w)} long × ${nwT(w)} thick`, w.h ? w.h + ' mm' : 'full height', roomAt((w.x0+w.x1)/2, (w.y0+w.y1)/2), Math.round((w.x0+w.x1)/2), Math.round((w.y0+w.y1)/2), '', w.note || '']));
   return rows;
 }
+
+// ===== OPPEIN units (JAT / OPPEIN pantry proposal for Unit C) — melamine wood-grain fronts, silver aluminium profile handles, 135 kick =====
+const OP = {   // key: [kind, label, w, d]   kind: b = base (720 + 135 kick), w = wall (720, top 2,195), t = tall, s = shelves
+  b350:['b','OP 350 base · 1 door',350,580], b400:['b','OP 400 base · pull-out',400,580], b900h:['b','OP 900 hob base · 3 drawers',900,580],
+  b1200s:['b','OP 1200 sink base · pull-out bin',1200,580], b600dw:['b','OP 600 DW provision (door)',600,580], b750:['b','OP 750 base · 2 doors',750,580],
+  w350:['w','OP 350 wall · 1 door',350,330], w400:['w','OP 400 wall · 1 door',400,330], w900h:['w','OP 900 wall · 2 doors + hood',900,330],
+  w600:['w','OP 600 wall · 1 door',600,330], w750:['w','OP 750 wall · 2 doors',750,330], sh1832:['s','OP open shelves 1832',1832,300],
+  t600:['t','OP 600 tall · oven + microwave',600,580],
+  n450g:['b','NEW 450 base + appliance garage',450,580], n600:['b','NEW 600 base · drawers',600,580], n550:['b','NEW 550 base · 1 door',550,580],
+  n230:['b','NEW 230 pull-out (spice)',230,580], n450w:['w','NEW 450 wall · 1 door',450,330]};
+const opKey = f => f.type.slice(3);
+LIB.push({cat:'OPPEIN units (original pantry)', items:Object.entries(OP).filter(([k]) => !k.startsWith('n')).map(([k, v]) => ['op_' + k, v[1], v[2], v[3], v[0] === 't' ? '#cdb79a' : '#cdb79a'])});
+LIB.push({cat:'OPPEIN — to order', items:Object.entries(OP).filter(([k]) => k.startsWith('n')).map(([k, v]) => ['op_' + k, v[1], v[2], v[3], '#cdb79a'])});
+function opSVG(t, w, d, c){
+  const k = opKey({type:t}), v = OP[k] || ['b'], x = -w/2, y = -d/2, nv = 'vector-effect="non-scaling-stroke"', ord = k.startsWith('n');
+  const ec = ord ? '#e65100' : '#5d4037';
+  if (v[0] === 'w' || v[0] === 's') return `<rect x="${x}" y="${y}" width="${w}" height="${d}" fill="${c}" fill-opacity=".25" stroke="${ec}" stroke-width="1.2" stroke-dasharray="6 4" ${nv}/>` + `<line x1="${x}" y1="${y}" x2="${x+w}" y2="${y+d}" stroke="${ec}" stroke-width=".6" stroke-dasharray="6 4" ${nv}/>`;
+  let s = `<rect x="${x}" y="${y}" width="${w}" height="${d}" fill="${c}" stroke="${ec}" stroke-width="1.2" ${nv}/>` + `<line x1="${x}" y1="${y+d-40}" x2="${x+w}" y2="${y+d-40}" stroke="${ec}" stroke-width=".6" stroke-dasharray="4 3" ${nv}/>`;
+  if (v[0] === 't') s += `<line x1="${x}" y1="${y}" x2="${x+w}" y2="${y+d}" stroke="${ec}" stroke-width=".8" ${nv}/><line x1="${x+w}" y1="${y}" x2="${x}" y2="${y+d}" stroke="${ec}" stroke-width=".8" ${nv}/>`;
+  if (k === 'b900h') [[-.25,-.2],[.25,-.2],[-.25,.2],[.25,.2],[0,0]].forEach(([a, b]) => s += `<circle cx="${a*w}" cy="${b*d}" r="${Math.min(w,d)*.09}" fill="none" stroke="#333" stroke-width="1" ${nv}/>`);
+  if (k === 'b1200s') s += `<rect x="${-380}" y="${-235 + 20}" width="760" height="${Math.min(470, d - 80)}" rx="40" fill="#e7ecef" stroke="#555" stroke-width="1" ${nv}/>`;
+  return s;
+}
+function opTitle(f){ const v = OP[opKey(f)]; return v ? `${v[1]}${opKey(f).startsWith('n') ? ' — TO ORDER' : ' — re-used from the OPPEIN pantry set'}` : ''; }
+function addOppeinPlan(){
+  const P = [  // [key, cx, cy, rot]  — Option D, adapted to the OPPEIN units
+    ['t600', 5395, 8002, 0], ['n230', 5810, 8002, 0],
+    ['b350', 9415, 7757, 90], ['b900h', 9415, 8382, 90], ['b400', 9415, 9032, 90], ['n450g', 9415, 9457, 90],
+    ['w350', 9540, 7757, 90], ['w900h', 9540, 8382, 90], ['w400', 9540, 9032, 90],
+    ['b1200s', 8360, 11074, 180], ['b600dw', 9260, 11074, 180], ['b350', 9415, 10588, 90],
+    ['w750', 7560, 11199, 180], ['w600', 8980, 11199, 180], ['w350', 9455, 11199, 180],
+    ['b750', 6860, 8925, 270], ['n600', 6860, 9600, 270], ['n550', 6860, 10175, 270]];
+  const add = P.map(([k, x, y, r]) => { const v = OP[k]; return {...F('op_' + k, v[1], x, y, v[2], v[3], r, '#cdb79a'), tex:'oak'}; });
+  mutate(() => state.furniture.push(...add));
+  toast(`Added ${add.length} OPPEIN units (orange outline = to order). Add the fridge, washer and island top from the library.`);
+}
 const typeColor = t => { for (const c of LIB) for (const i of c.items) if (i[0]===t) return i[4]; return '#eee'; };
 
 let _n = 1;
@@ -858,6 +895,7 @@ const DASH = 'stroke-dasharray="4 3"';
 function furnSVG(t,w,d,c){
   if (t.startsWith('el_')) return elSVG(t,w,d,c);
   if (t.startsWith('acc_')) return accSVG(t,w,d);
+  if (t.startsWith('op_')) return opSVG(t,w,d,c);
   if (t === 'bulkhead'){ const x = -w/2, y = -d/2; return `<rect x="${x}" y="${y}" width="${w}" height="${d}" fill="${c}" fill-opacity=".45" stroke="#8a6d3b" stroke-width="1.4" stroke-dasharray="8 4" vector-effect="non-scaling-stroke"/>` + `<line x1="${x}" y1="${y+d}" x2="${x+w}" y2="${y}" stroke="#8a6d3b" stroke-width=".6" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`; }
   const x = -w/2, y = -d/2, m = Math.min(w,d);
   switch (t){
@@ -908,6 +946,33 @@ function furnSVG(t,w,d,c){
     case 'roundtable': return ec(0,0,w/2,d/2,c) + ec(0,0,w/2-50,d/2-50,'none','opacity=".4"');
     case 'counter': return rc(x,y,w,d,c) + ln(x,y+d-40,x+w,y+d-40,DASH);
     case 'counterlow': return rc(x,y,w,d,c);
+    case 'op_b350': case 'op_b400': case 'op_b900h': case 'op_b1200s': case 'op_b600dw': case 'op_b750': case 'op_w350': case 'op_w400': case 'op_w900h': case 'op_w600': case 'op_w750': case 'op_sh1832': case 'op_t600': case 'op_n450g': case 'op_n600': case 'op_n550': case 'op_n230': case 'op_n450w': {
+      const k = opKey(f), v = OP[k] || ['b'], fm = finMatOf({c:f.color || '#cdb79a', t:f.tex || 'oak'}, false), body = mat('#e8e2d8', {roughness:.6}), fz = d/2 - .02, hd = f.hd || 'edge';
+      const top = mat('#e9e6e0', {roughness:.25}), KICK = .135, BH = .72;
+      if (v[0] === 'b'){
+        g.add(box(w - .01, KICK, d - .06, '#3a3a3a', 0, 0, -.03), box(w, BH, d - .02, body, 0, KICK, -.01), rbox(w + .005, .03, d + .02, top, 0, KICK + BH, .01, .003));
+        if (k === 'b900h'){ fronts(g, -w/2, KICK, w, BH*.45, fz, 1, 1, fm, hd); fronts(g, -w/2, KICK + BH*.45, w, BH*.275, fz, 1, 1, fm, hd); fronts(g, -w/2, KICK + BH*.725, w, BH*.275, fz, 1, 1, fm, hd);
+          g.add(rbox(w*.85, .01, d*.8, mat('#0d0d0e', {roughness:.06, metalness:.3}), 0, KICK + BH + .03, 0, .003)); }
+        else if (k === 'b1200s'){ fronts(g, -w/2, KICK, w, BH, fz, 2, 1, fm, hd); g.add(box(.76, .012, .44, mat('#c9ced3', {metalness:.8, roughness:.3}), 0, KICK + BH + .03, -.02)); }
+        else if (k === 'b400' || k === 'n230'){ fronts(g, -w/2, KICK, w, BH, fz, 1, 1, fm, hd); }
+        else if (k === 'n600'){ fronts(g, -w/2, KICK, w, BH, fz, 1, 3, fm, hd); }
+        else if (k === 'n450g'){ fronts(g, -w/2, KICK, w, BH, fz, 1, 1, fm, hd); g.add(box(w - .02, .45, .36, body, 0, KICK + BH + .03, -d/2 + .18)); fronts(g, -w/2 + .01, KICK + BH + .03, w - .02, .45, -d/2 + .36 - .02, 1, 1, fm, 'edge'); }
+        else fronts(g, -w/2, KICK, w, BH, fz, w >= .7 ? 2 : 1, 1, fm, hd);
+      } else if (v[0] === 'w'){
+        const yb = 2.195 - .72; g.add(box(w, .72, d, body, 0, yb, 0)); fronts(g, -w/2, yb, w, .72, d/2 - .02, w >= .7 ? 2 : 1, 1, fm, hd);
+        g.add(box(w - .04, .01, .02, glowMat('#fff7e6', '#ffe9c4', .8), 0, yb - .01, d/2 - .06));
+        if (k === 'w900h') g.add(box(w*.5, .03, d*.8, mat('#b9bec3', {metalness:.8, roughness:.3}), 0, yb - .03, 0));
+      } else if (v[0] === 's'){
+        [1.55, 1.86, 2.165].forEach(y => g.add(box(w, .03, d, fm, 0, y, 0)));
+      } else if (v[0] === 't'){
+        const T = 2.195; g.add(box(w - .01, KICK, d - .06, '#3a3a3a', 0, 0, -.03), box(w, T - KICK, d - .02, body, 0, KICK, -.01));
+        fronts(g, -w/2, KICK, w, .4, fz, 1, 1, fm, hd);
+        const ov = mat('#141618', {roughness:.08, metalness:.4}); g.add(box(w - .01, .595, .02, ov, 0, KICK + .4, fz + .01), box(w - .01, .38, .02, ov, 0, KICK + .4 + .595 + .02, fz + .01));
+        g.add(box(w*.5, .02, .015, mat('#c9ced3', {metalness:.8}), 0, KICK + .4 + .5, fz + .03), box(w*.4, .05, .01, mat('#2a2d30'), 0, KICK + .4 + .595 + .02 + .3, fz + .025));
+        const y2 = KICK + .4 + .595 + .02 + .38; fronts(g, -w/2, y2, w, T - y2, fz, 1, 1, fm, hd);
+      }
+      break;
+    }
     case 'tallcab': { let s = rc(x,y,w,d,c) + ln(x,y,x+w,y+d) + ln(x+w,y,x,y+d); for (let i = 1; i < Math.round(w/600); i++) s += ln(x + i*w/Math.round(w/600), y, x + i*w/Math.round(w/600), y+d); return s; }
     case 'stove': {
       let s = rc(x,y,w,d,'#2f2f2f','rx="20"'); const r = m*.26;
@@ -962,7 +1027,7 @@ function furnSVG(t,w,d,c){
 }
 
 /* ======================= 渲染 ======================= */
-const NOLABEL = ['tallcab','bulkhead','acc_1w18','acc_1w24','acc_2w24','acc_4w24','acc_w12','acc_w18','plant','floorlamp','sidetable','barstool','beanbag'];
+const NOLABEL = ['op_w350','op_w400','op_w900h','op_w600','op_w750','op_sh1832','op_n450w','tallcab','bulkhead','acc_1w18','acc_1w24','acc_2w24','acc_4w24','acc_w12','acc_w18','plant','floorlamp','sidetable','barstool','beanbag'];
 function renderRooms(){
   let s = '';
   ROOMS.forEach(r => s += `<polygon class="room" data-room="${r.id}" points="${r.poly.map(p=>p.join(',')).join(' ')}" fill="url(#m-${state.rooms[r.id].mat})"/>`);
@@ -978,7 +1043,7 @@ function renderFurn(){
     const fs = Math.max(80, Math.min(170, Math.min(f.w,f.d)*.2));
     const label = Math.min(f.w,f.d) >= 380 && !NOLABEL.includes(f.type)
       ? `<text transform="rotate(${-f.rot})" font-size="${fs}" text-anchor="middle" dominant-baseline="central" fill="#4a443c" opacity=".8" pointer-events="none">${esc(nm(f.name))}</text>` : '';
-    return `<g class="furn" data-fid="${f.id}" transform="translate(${f.cx} ${f.cy}) rotate(${f.rot})">${isEl(f) ? `<title>${esc(elTitle(f))}</title>` : ''}${furnSVG(f.type,f.w,f.d,f.color)}${label}</g>`;
+    return `<g class="furn" data-fid="${f.id}" transform="translate(${f.cx} ${f.cy}) rotate(${f.rot})">${isEl(f) ? `<title>${esc(elTitle(f))}</title>` : f.type.startsWith('op_') ? `<title>${esc(opTitle(f))}</title>` : ''}${furnSVG(f.type,f.w,f.d,f.color)}${label}</g>`;
   }).join('');
 }
 
@@ -1336,6 +1401,7 @@ function furnPanel(f){
       <label>${tr('中心','Center')} Y (mm)<input type="number" id="fY" value="${Math.round(f.cy)}" step="10"></label>
       <label>${tr('旋转','Rotation')} (°)<input type="number" id="fR" value="${f.rot}" step="15"></label>
       <label>${tr('颜色','Color')}<input type="color" id="fC" value="${f.color}"></label>
+      ${f.type.startsWith('op_') ? `<label>Front finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => /door|wall/.test(v[6])).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'oak') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><label>Handles<select id="fHd">${[['edge','Aluminium profile (OPPEIN)'],['bar','Bar'],['knob','Knob'],['none','Push-to-open']].map(([k, n]) => `<option value="${k}" ${k === (f.hd || 'edge') ? 'selected' : ''}>${n}</option>`).join('')}</select></label><div class="muted" style="font-size:11.5px;grid-column:1/-1">${esc(opTitle(f))}. Base 720 + 135 kick (worktop ~870), wall units 720 high with tops at 2,195.</div>` : ''}
       ${f.type === 'tallcab' ? `<label>Height (mm)<input type="number" id="fTh" value="${f.th || 2840}" step="10" min="1800" max="3110"></label><label>Front finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => /door|wall/.test(v[6])).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><label>Handles<select id="fHd">${[['bar','Bar'],['edge','Edge pull'],['knob','Knob'],['none','Push-to-open']].map(([k, n]) => `<option value="${k}" ${k === (f.hd || 'bar') ? 'selected' : ''}>${n}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${[...FIN_SWATCH.door, ...WALL_SWATCH].map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">Floor to the cove underside (2,840) by default — set 3,110 to run to the main ceiling. Width in steps of 600 = one door each; split top/bottom doors above 2,200.</div>` : ''}
       ${f.type === 'bulkhead' ? `<label>Underside height (mm)<input type="number" id="fZb" value="${f.zb || 2840}" step="10" min="2100" max="3100"></label><label>Cove lip height (mm)<input type="number" id="fBh" value="${f.bh || 100}" step="10" min="50" max="250"></label><label>Cove trough width (mm)<input type="number" id="fTw" value="${f.tw || 100}" step="10" min="50" max="300"></label><label>Cove LED<select id="fLed"><option value="1" ${f.led !== false ? 'selected' : ''}>On (room side)</option><option value="0" ${f.led === false ? 'selected' : ''}>Off</option></select></label><label>Finish<select id="fTex">${Object.entries(FIN_TEX).filter(([, v]) => v[6].split(' ').includes('ceil') || v[6].split(' ').includes('wall')).map(([id, v]) => `<option value="${id}" ${id === (f.tex || 'paint') ? 'selected' : ''}>${tr(v[0], v[1])}</option>`).join('')}</select></label><div class="finsw" style="grid-column:1/-1">${WALL_SWATCH.map(c => `<button data-fsw="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div><div class="muted" style="font-size:11.5px;grid-column:1/-1">As the developer's detail: 450 deep bulkhead, underside 2,840. Wall side = closed gypsum box (AC, conduits) up to the 3,110 ceiling; room side = 100 wide open trough with a 100 lip and the LED strip, lighting the 3,110 ceiling (glows at Night). Hidden in 3D when walls are cut.</div>` : ''}
     </div>
@@ -1835,6 +1901,7 @@ matchMedia('(max-width:1100px)').addEventListener('change', () => drawer(null));
 drawer(null);                                  // 恢复上次的面板收起状态
 $('#exportPng').onclick = exportPNG;
 $('#exportMep').onclick = exportMep;
+$('#addOppein').onclick = addOppeinPlan;
 $('#exportJson').onclick = () => download(tr('户型装修方案', 'floor-plan-design') + '.json', new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
 $('#importJson').onclick = () => $('#fileIn').click();
 $('#fileIn').onchange = e => {
